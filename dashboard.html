@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Gestor de Casos de Prueba</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="stylesheet" href="css/dashboard.css?v=20250110l">
+</head>
+
+<body>
+    <!-- Header del Dashboard -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="header-left">
+                <h1>📋 Dashboard de Requerimientos</h1>
+                <p class="header-subtitle">Gestión de Casos de Prueba del Equipo</p>
+            </div>
+            <div class="header-right">
+                <!-- Switch de Tema -->
+                <div class="theme-switch-container">
+                    <span class="theme-label">🌓 Tema:</span>
+                    <div class="theme-switch">
+                        <label class="switch">
+                            <input type="checkbox" id="themeToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span id="themeLabel">Modo Claro</span>
+                    </div>
+                </div>
+                
+                <button class="btn btn-primary" id="btnNewRequirement">
+                    ➕ Nuevo Requerimiento
+                </button>
+                <button class="btn btn-secondary" id="btnGenerateReport">
+                    📊 Generar Reporte
+                </button>
+                <!-- Botones de importar/exportar ocultos por ahora -->
+                <button class="btn btn-secondary" id="btnExportProject" style="display: none;">
+                    📤 Exportar Proyecto
+                </button>
+                <button class="btn btn-secondary" id="btnImportProject" style="display: none;">
+                    📂 Importar Proyecto
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="dashboard-main">
+        <!-- Filtros y Búsqueda -->
+        <section class="dashboard-filters">
+            <div class="filters-container">
+                <div class="search-box">
+                    <input type="text" id="searchRequirements" placeholder="🔍 Buscar requerimientos...">
+                </div>
+                <div class="filter-buttons">
+                    <button class="filter-btn active" data-filter="all">Todos</button>
+                    <button class="filter-btn" data-filter="active">Activos</button>
+                    <button class="filter-btn" data-filter="completed">Completados</button>
+                    <button class="filter-btn" data-filter="paused">Pausados</button>
+                </div>
+                <div class="sort-options">
+                    <select id="sortBy">
+                        <option value="priority">Por Prioridad</option>
+                        <option value="name">Por Nombre</option>
+                        <option value="date">Por Fecha</option>
+                        <option value="progress">Por Progreso</option>
+                    </select>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lista de Requerimientos -->
+        <section class="requirements-list">
+            <div class="requirements-container" id="requirementsContainer">
+                <!-- Los requerimientos se cargarán dinámicamente aquí -->
+            </div>
+        </section>
+
+        <!-- Estadísticas del Dashboard -->
+        <section class="dashboard-stats">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📊</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="totalRequirements">0</div>
+                        <div class="stat-label">Requerimientos</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="completedRequirements">0</div>
+                        <div class="stat-label">Completados</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⏳</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="activeRequirements">0</div>
+                        <div class="stat-label">En Progreso</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🚫</div>
+                    <div class="stat-content">
+                        <div class="stat-number" id="blockedRequirements">0</div>
+                        <div class="stat-label">Bloqueados</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal para Nuevo Requerimiento -->
+    <div id="newRequirementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>➕ Nuevo Requerimiento</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="newRequirementForm">
+                    <div class="form-group">
+                        <label for="reqNumber">Número de Requerimiento:</label>
+                        <input type="text" id="reqNumber" required placeholder="REQ-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="reqName">Nombre:</label>
+                        <input type="text" id="reqName" required placeholder="Nombre del requerimiento">
+                    </div>
+                    <div class="form-group">
+                        <label for="reqDescription">Descripción:</label>
+                        <textarea id="reqDescription" rows="3" placeholder="Descripción detallada del requerimiento"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="reqPriority">Prioridad:</label>
+                        <select id="reqPriority" required>
+                            <option value="1">1 - Crítica (Rojo)</option>
+                            <option value="2">2 - Alta (Naranja)</option>
+                            <option value="3">3 - Media (Amarillo)</option>
+                            <option value="4">4 - Normal (Verde)</option>
+                            <option value="5">5 - Baja (Azul)</option>
+                            <option value="6">6 - Muy Baja (Violeta)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="reqTester">Tester Asignado:</label>
+                        <input type="text" id="reqTester" placeholder="Nombre del tester">
+                    </div>
+                    <div class="form-group">
+                        <label for="reqStartDate">Fecha de Inicio:</label>
+                        <input type="date" id="reqStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="reqStatus">Estado:</label>
+                        <select id="reqStatus">
+                            <option value="active">Activo</option>
+                            <option value="completed">Completado</option>
+                            <option value="paused">Pausado</option>
+                            <option value="blocked">Bloqueado</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelNewReq">Cancelar</button>
+                <button type="submit" class="btn btn-primary" form="newRequirementForm">Crear Requerimiento</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para Editar Requerimiento -->
+    <div id="editRequirementModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✏️ Editar Requerimiento</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editRequirementForm">
+                    <div class="form-group">
+                        <label for="editReqNumber">Número de Requerimiento:</label>
+                        <input type="text" id="editReqNumber" required placeholder="REQ-001">
+                    </div>
+                    <div class="form-group">
+                        <label for="editReqName">Nombre:</label>
+                        <input type="text" id="editReqName" required placeholder="Nombre del requerimiento">
+                    </div>
+                    <div class="form-group">
+                        <label for="editReqDescription">Descripción:</label>
+                        <textarea id="editReqDescription" rows="3" placeholder="Descripción detallada del requerimiento"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="editReqPriority">Prioridad:</label>
+                        <select id="editReqPriority" required>
+                            <option value="1">1 - Crítica (Rojo)</option>
+                            <option value="2">2 - Alta (Naranja)</option>
+                            <option value="3">3 - Media (Amarillo)</option>
+                            <option value="4">4 - Normal (Verde)</option>
+                            <option value="5">5 - Baja (Azul)</option>
+                            <option value="6">6 - Muy Baja (Violeta)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editReqTester">Tester Asignado:</label>
+                        <input type="text" id="editReqTester" placeholder="Nombre del tester">
+                    </div>
+                    <div class="form-group">
+                        <label for="editReqStartDate">Fecha de Inicio:</label>
+                        <input type="date" id="editReqStartDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="editReqStatus">Estado:</label>
+                        <select id="editReqStatus">
+                            <option value="active">Activo</option>
+                            <option value="completed">Completado</option>
+                            <option value="paused">Pausado</option>
+                            <option value="blocked">Bloqueado</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="cancelEditReq">Cancelar</button>
+                <button type="submit" class="btn btn-primary" form="editRequirementForm">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Reporte Ejecutivo -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content report-modal">
+            <div class="modal-header">
+                <h2>📊 Reporte Ejecutivo</h2>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="report-controls">
+                    <div class="selection-controls">
+                        <button class="btn btn-sm" id="selectAllRequirements">Seleccionar Todos</button>
+                        <button class="btn btn-sm" id="deselectAllRequirements">Deseleccionar Todos</button>
+                        <span class="selection-count">Seleccionados: <span id="selectedCount">0</span></span>
+                    </div>
+                </div>
+                
+                <div class="report-content">
+                    <!-- Vista Ejecutiva -->
+                    <div class="executive-summary" id="executiveSummary">
+                        <h3>🎯 Resumen Ejecutivo</h3>
+                        <div class="summary-cards">
+                            <div class="summary-card">
+                                <div class="summary-number" id="totalSelected">0</div>
+                                <div class="summary-label">Requerimientos</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-number" id="totalTime">0</div>
+                                <div class="summary-label">Horas Totales</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-number" id="successRate">0%</div>
+                                <div class="summary-label">Tasa de Éxito</div>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-number" id="totalScenarios">0</div>
+                                <div class="summary-label">Escenarios</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Vista Detallada -->
+                    <div class="detailed-view" id="detailedView">
+                        <h3>📋 Detalle por Requerimiento</h3>
+                        <div class="report-table" id="reportTable">
+                            <!-- Se llenará dinámicamente -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="exportToPDF">📄 Exportar PDF</button>
+                <button class="btn btn-primary" id="closeReportModal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/dashboard-theme.js?v=20250110a"></script>
+    <script src="js/sync-manager.js?v=20250110b"></script>
+    <script src="js/data-migration.js?v=20250110a"></script>
+    <script src="js/dashboard-core.js?v=20250110o"></script>
+    <script src="js/dashboard-ui.js?v=20250110o"></script>
+    <script src="js/dashboard-storage.js?v=20250110a"></script>
+</body>
+
+</html>
