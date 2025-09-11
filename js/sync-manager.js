@@ -71,6 +71,13 @@ function syncDashboardToApp(requirementId) {
                 console.log('🔄 MANTENIENDO casos de la app (más recientes)');
                 multicaseRequirement.cases = window.currentRequirement.cases;
             }
+            
+            // 🆕 PRESERVAR INFORMACIÓN BÁSICA DEL DASHBOARD PERO MANTENER CASOS DE LA APP
+            console.log('🔄 Sincronizando solo información básica del dashboard...');
+            multicaseRequirement.info = {
+                ...multicaseRequirement.info, // Información del dashboard
+                // Mantener casos de la app
+            };
         }
         
         console.log('📊 Casos del requerimiento:', multicaseRequirement.cases.length);
@@ -230,6 +237,39 @@ function syncAppToDashboard() {
         
         if (requirementIndex === -1) {
             console.warn('⚠️ Requerimiento no encontrado en dashboard');
+            console.log('🔍 DEBUG - IDs disponibles en dashboard:', dashboardData.requirements.map(r => r.id));
+            console.log('🔍 DEBUG - ID buscado:', window.currentRequirement.id);
+            
+            // 🆕 SI NO SE ENCUENTRA, BUSCAR POR ID DEL REQUERIMIENTO ACTIVO DEL DASHBOARD
+            const activeRequirementId = localStorage.getItem('activeRequirementId');
+            if (activeRequirementId) {
+                const activeIndex = dashboardData.requirements.findIndex(req => req.id === activeRequirementId);
+                if (activeIndex !== -1) {
+                    console.log('🔄 REEMPLAZANDO requerimiento activo del dashboard con datos del JSON importado');
+                    // Reemplazar el requerimiento activo del dashboard con los datos del JSON
+                    dashboardData.requirements[activeIndex] = {
+                        ...dashboardData.requirements[activeIndex], // Mantener estructura del dashboard
+                        // Actualizar con datos del JSON
+                        name: window.currentRequirement.info.name,
+                        number: window.currentRequirement.info.number,
+                        description: window.currentRequirement.info.description,
+                        tester: window.currentRequirement.info.tester,
+                        startDate: window.currentRequirement.info.startDate,
+                        status: window.currentRequirement.info.status || 'active',
+                        priority: window.currentRequirement.info.priority || 1,
+                        updatedAt: new Date().toISOString(),
+                        cases: window.currentRequirement.cases || [],
+                        stats: calculateRealStats(window.currentRequirement)
+                    };
+                    
+                    // Guardar datos actualizados
+                    saveDashboardData(dashboardData);
+                    
+                    console.log('✅ Requerimiento activo del dashboard reemplazado con datos del JSON');
+                    return true;
+                }
+            }
+            
             return false;
         }
         
@@ -237,11 +277,29 @@ function syncAppToDashboard() {
         const requirement = dashboardData.requirements[requirementIndex];
         
         // Sincronizar información básica
+        console.log('🔄 ANTES de sincronizar - Dashboard:', {
+            name: requirement.name,
+            number: requirement.number,
+            tester: requirement.tester
+        });
+        console.log('🔄 ANTES de sincronizar - App:', {
+            name: window.currentRequirement.info.name,
+            number: window.currentRequirement.info.number,
+            tester: window.currentRequirement.info.tester
+        });
+        
         requirement.name = window.currentRequirement.info.name;
+        requirement.number = window.currentRequirement.info.number;
         requirement.description = window.currentRequirement.info.description;
         requirement.tester = window.currentRequirement.info.tester;
         requirement.startDate = window.currentRequirement.info.startDate;
         requirement.updatedAt = new Date().toISOString();
+        
+        console.log('🔄 DESPUÉS de sincronizar - Dashboard:', {
+            name: requirement.name,
+            number: requirement.number,
+            tester: requirement.tester
+        });
         
         // Sincronizar casos y escenarios
         requirement.cases = window.currentRequirement.cases || [];

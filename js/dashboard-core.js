@@ -376,15 +376,11 @@ function updateAllRequirementsStats() {
  * Navega a un requerimiento específico
  */
 function navigateToRequirement(requirementId) {
-    // Sincronizar datos del dashboard a la app
-    if (typeof syncDashboardToApp === 'function') {
-        syncDashboardToApp(requirementId);
-    }
-    
     // Guardar el ID del requerimiento activo
     localStorage.setItem('activeRequirementId', requirementId);
     
     // Redirigir a la aplicación principal
+    // La sincronización se hará en la app si es necesario
     window.location.href = 'index.html';
 }
 
@@ -431,6 +427,40 @@ function syncFromAppToDashboard() {
         }
         
         console.log('📊 Casos en dashboard ANTES:', dashboardRequirement.cases?.length || 0);
+        
+        // 🆕 SINCRONIZAR DATOS NOMINALES DEL REQUERIMIENTO
+        if (appRequirement.info) {
+            console.log('🔄 Sincronizando datos nominales del requerimiento...');
+            console.log('🔄 ANTES - Dashboard:', {
+                name: dashboardRequirement.name,
+                number: dashboardRequirement.number,
+                tester: dashboardRequirement.tester,
+                description: dashboardRequirement.description
+            });
+            console.log('🔄 ANTES - App:', {
+                name: appRequirement.info.name,
+                number: appRequirement.info.number,
+                tester: appRequirement.info.tester,
+                description: appRequirement.info.description
+            });
+            
+            // Actualizar datos nominales
+            dashboardRequirement.name = appRequirement.info.name || dashboardRequirement.name;
+            dashboardRequirement.number = appRequirement.info.number || dashboardRequirement.number;
+            dashboardRequirement.tester = appRequirement.info.tester || dashboardRequirement.tester;
+            dashboardRequirement.description = appRequirement.info.description || dashboardRequirement.description;
+            dashboardRequirement.startDate = appRequirement.info.startDate || dashboardRequirement.startDate;
+            dashboardRequirement.status = appRequirement.info.status || dashboardRequirement.status;
+            dashboardRequirement.priority = appRequirement.info.priority || dashboardRequirement.priority;
+            dashboardRequirement.updatedAt = new Date().toISOString();
+            
+            console.log('🔄 DESPUÉS - Dashboard:', {
+                name: dashboardRequirement.name,
+                number: dashboardRequirement.number,
+                tester: dashboardRequirement.tester,
+                description: dashboardRequirement.description
+            });
+        }
         
         // Sincronizar casos y escenarios
         dashboardRequirement.cases = appRequirement.cases || [];
@@ -583,14 +613,42 @@ function initializeDashboard() {
     // Cargar datos
     loadRequirements();
     
-    // CRÍTICO: Actualizar estadísticas de todos los requerimientos
-    updateAllRequirementsStats();
-    
-    // Aplicar filtros iniciales
-    applyFilters();
-    
-    // Actualizar interfaz
-    updateDashboard();
+    // 🆕 VERIFICAR SI HAY QUE FORZAR ACTUALIZACIÓN
+    const forceUpdate = localStorage.getItem('forceDashboardUpdate');
+    if (forceUpdate) {
+        console.log('🔄 Forzando actualización del dashboard después de importar JSON...');
+        localStorage.removeItem('forceDashboardUpdate');
+        
+        // Forzar sincronización desde la app
+        if (typeof syncFromAppToDashboard === 'function') {
+            syncFromAppToDashboard();
+            
+            // 🆕 ESPERAR A QUE SE COMPLETE LA SINCRONIZACIÓN ANTES DE RENDERIZAR
+            setTimeout(() => {
+                console.log('🔄 Sincronización completada, actualizando interfaz...');
+                
+                // CRÍTICO: Actualizar estadísticas de todos los requerimientos
+                updateAllRequirementsStats();
+                
+                // Aplicar filtros iniciales
+                applyFilters();
+                
+                // Actualizar interfaz
+                updateDashboard();
+                
+                console.log('✅ Dashboard actualizado después de importar JSON');
+            }, 1000); // Aumentamos el tiempo para asegurar que se complete la sincronización
+        }
+    } else {
+        // CRÍTICO: Actualizar estadísticas de todos los requerimientos
+        updateAllRequirementsStats();
+        
+        // Aplicar filtros iniciales
+        applyFilters();
+        
+        // Actualizar interfaz
+        updateDashboard();
+    }
     
     console.log('✅ Dashboard inicializado');
 }

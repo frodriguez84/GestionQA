@@ -956,6 +956,40 @@ body {
 }
 
 /* ===============================================
+   MODAL DE GUARDAR/CARGAR
+   =============================================== */
+
+.save-load-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.save-load-section h4 {
+    margin: 0 0 10px 0;
+    color: #fff;
+    font-size: 1.1em;
+}
+
+.save-load-section p {
+    margin: 0 0 15px 0;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.9em;
+    line-height: 1.4;
+}
+
+.warning-text {
+    background: rgba(255, 193, 7, 0.2);
+    border: 1px solid rgba(255, 193, 7, 0.4);
+    border-radius: 6px;
+    padding: 10px;
+    color: #ffc107 !important;
+    font-size: 0.85em !important;
+}
+
+/* ===============================================
    ANIMACIONES ADICIONALES
    =============================================== */
 

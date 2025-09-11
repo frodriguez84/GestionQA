@@ -4,6 +4,17 @@
 // y al final: líneas Amarillas (CICLO) + Negras (ESCENARIO) con imágenes.
 // =====================================================
 
+// Función auxiliar para obtener datos del dashboard
+function getDashboardData() {
+    try {
+        const data = localStorage.getItem('dashboardData');
+        return data ? JSON.parse(data) : null;
+    } catch (error) {
+        console.error('Error obteniendo datos del dashboard:', error);
+        return null;
+    }
+}
+
 // === Export JSON v3 (multicaso completo) ===
 function exportProjectJSONv3() {
     try {
@@ -26,6 +37,10 @@ function exportProjectJSONv3() {
         // Deep copy seguro (usar req, NO window.currentRequirement)
         const requirement = JSON.parse(JSON.stringify(req.info || {}));
         const cases = JSON.parse(JSON.stringify(req.cases || []));
+        
+        // DEBUG: Verificar qué se está exportando
+        console.log('🔍 DEBUG exportProjectJSONv3 - req.info:', req.info);
+        console.log('🔍 DEBUG exportProjectJSONv3 - requirement exportado:', requirement);
 
         const data = {
             version: "3.0",
@@ -92,6 +107,37 @@ function exportProjectJSONv3() {
 
     // ✅ Setea las variables REALES (let) que usa multicase-core.js
     function setReqCase(reqObj, activeId) {
+        // 🆕 PRESERVAR ID DEL REQUERIMIENTO ORIGINAL
+        const originalId = window.currentRequirement?.id || localStorage.getItem('activeRequirementId');
+        if (originalId && !reqObj.id) {
+            reqObj.id = originalId;
+            console.log('🔧 Preservando ID del requerimiento original:', originalId);
+        }
+        
+        // 🆕 USAR INFORMACIÓN DEL JSON (NO preservar del dashboard)
+        if (originalId) {
+            const dashboardData = getDashboardData();
+            if (dashboardData) {
+                const originalReq = dashboardData.requirements.find(req => req.id === originalId);
+                if (originalReq) {
+                    console.log('🔧 Usando información del JSON importado:', {
+                        name: reqObj.info.name,
+                        number: reqObj.info.number,
+                        tester: reqObj.info.tester
+                    });
+                    console.log('🔧 Información del dashboard (ignorada):', {
+                        name: originalReq.name,
+                        number: originalReq.number,
+                        tester: originalReq.tester
+                    });
+                    
+                    // USAR los datos del JSON, NO preservar los del dashboard
+                    // reqObj.info ya contiene los datos correctos del JSON
+                    console.log('✅ Manteniendo información del JSON:', reqObj.info);
+                }
+            }
+        }
+        
         try { currentRequirement = reqObj; } catch { /* noop */ }
         try { currentCaseId = activeId || (reqObj.cases?.[0]?.id ?? null); } catch { /* noop */ }
         try { multicaseMode = true; } catch { /* noop */ }
@@ -130,12 +176,19 @@ function exportProjectJSONv3() {
 
         const exportedAt = obj.exportedAt || obj.exportDate || new Date().toISOString();
         console.log('🧭 v3-flat detectado. exportedAt:', exportedAt);
+        
+        // DEBUG: Verificar qué se está importando
+        console.log('🔍 DEBUG importFromV3Flat - requirement importado:', requirement);
+        console.log('🔍 DEBUG importFromV3Flat - cases importados:', cases.length);
 
         const activeId = obj.activeCaseId && cases.some(c => c.id === obj.activeCaseId)
             ? obj.activeCaseId
             : (cases[0]?.id || null);
 
-        setReqCase({ info: { ...requirement }, cases }, activeId);
+        const reqObj = { info: { ...requirement }, cases };
+        console.log('🔍 DEBUG importFromV3Flat - reqObj creado:', reqObj);
+        
+        setReqCase(reqObj, activeId);
     }
     function importFromV3Wrapped(obj) {
         const requirement = obj.project.requirement || {};
@@ -255,6 +308,37 @@ function exportProjectJSONv3() {
         }
 
         await applyAndRefreshUI();
+
+        // 🆕 SINCRONIZAR CON DASHBOARD DESPUÉS DE IMPORTAR
+        setTimeout(() => {
+            if (typeof syncAppToDashboard === 'function') {
+                console.log('🔄 Sincronizando con dashboard después de importar JSON...');
+                syncAppToDashboard();
+            } else if (typeof syncFromAppToDashboard === 'function') {
+                console.log('🔄 Usando syncFromAppToDashboard como fallback...');
+                syncFromAppToDashboard();
+            }
+            
+            // 🆕 FORZAR ACTUALIZACIÓN DEL HEADER
+            setTimeout(() => {
+                if (typeof createRequirementHeader === 'function') {
+                    console.log('🔄 Forzando actualización del header después de importar JSON...');
+                    createRequirementHeader();
+                }
+            }, 200);
+            
+            // 🆕 FORZAR ACTUALIZACIÓN DEL DASHBOARD
+            setTimeout(() => {
+                console.log('🔄 Forzando actualización del dashboard después de importar JSON...');
+                // Guardar un flag en localStorage para que el dashboard se actualice
+                localStorage.setItem('forceDashboardUpdate', new Date().toISOString());
+                
+                // Si estamos en la app, mostrar un mensaje para ir al dashboard
+                if (typeof showNotification === 'function') {
+                    showNotification('✅ JSON importado correctamente. Ve al dashboard para ver los cambios.', 'success');
+                }
+            }, 1000);
+        }, 500);
 
         // Resumen
         const totalCases = (currentRequirement?.cases || []).length;

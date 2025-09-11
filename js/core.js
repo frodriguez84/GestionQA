@@ -282,15 +282,29 @@ function initializeApp() {
     
     if (activeRequirementId) {
         console.log('📥 Cargando requerimiento desde dashboard...');
-        // Sincronizar requerimiento desde el dashboard
-        if (typeof syncDashboardToApp === 'function') {
-            console.log('✅ Usando syncDashboardToApp');
-            syncDashboardToApp(activeRequirementId);
+        
+        // 🎯 PASO 1: Primero cargar datos existentes de la app
+        const loaded = loadMulticaseData();
+        
+        if (loaded && window.currentRequirement && window.currentRequirement.cases && window.currentRequirement.cases.length > 0) {
+            console.log('✅ Datos existentes en la app, manteniendo datos actuales');
+            // Si hay datos en la app, mantenerlos y solo sincronizar la información básica
+            if (typeof syncDashboardToApp === 'function') {
+                console.log('🔄 Sincronizando solo información básica del dashboard...');
+                syncDashboardToApp(activeRequirementId);
+            }
         } else {
-            console.log('⚠️ Usando fallback loadRequirementFromDashboard');
-            // Fallback al método anterior
-            loadRequirementFromDashboard(activeRequirementId);
+            console.log('📂 No hay datos en la app, cargando desde dashboard...');
+            // Si no hay datos en la app, cargar desde el dashboard
+            if (typeof syncDashboardToApp === 'function') {
+                console.log('✅ Usando syncDashboardToApp');
+                syncDashboardToApp(activeRequirementId);
+            } else {
+                console.log('⚠️ Usando fallback loadRequirementFromDashboard');
+                loadRequirementFromDashboard(activeRequirementId);
+            }
         }
+        
         // Limpiar el ID activo
         localStorage.removeItem('activeRequirementId');
         console.log('🧹 ID de requerimiento activo limpiado');
@@ -700,7 +714,29 @@ if (document.readyState === 'loading') {
                                 alert("❌ JSON inválido o incompatible (se esperaba formato multicase v3)");
                                 return;
                             }
+                            
+                            // 🆕 SINCRONIZAR CON DASHBOARD DESPUÉS DE CARGAR
                             applyImportedV3Hotfix(v3, file.name);
+                            
+                            // Sincronizar con el dashboard después de cargar
+        setTimeout(() => {
+            if (typeof syncAppToDashboard === 'function') {
+                console.log('🔄 Sincronizando con dashboard después de cargar JSON...');
+                syncAppToDashboard();
+            } else if (typeof syncFromAppToDashboard === 'function') {
+                console.log('🔄 Usando syncFromAppToDashboard como fallback...');
+                syncFromAppToDashboard();
+            }
+            
+            // 🆕 FORZAR ACTUALIZACIÓN DEL HEADER
+            setTimeout(() => {
+                if (typeof createRequirementHeader === 'function') {
+                    console.log('🔄 Forzando actualización del header después de cargar JSON...');
+                    createRequirementHeader();
+                }
+            }, 200);
+        }, 500);
+                            
                         } catch (err) {
                             console.error("❌ Error parseando JSON:", err);
                             alert("❌ El archivo no es un JSON válido");

@@ -260,6 +260,9 @@ function createRequirementHeader() {
             <button class="btn btn-warning btn-small" onclick="goToDashboard()">
                 ✏️ Editar Requerimiento
             </button>
+            <button class="btn btn-primary btn-small" onclick="openRequirementSaveLoad()" style="display: none;">
+                💾 Guardar/Cargar
+            </button>
         </div>
     `;
 
@@ -885,7 +888,189 @@ function openRequirementConfig() {
  * Abre guardar/cargar a nivel requerimiento
  */
 function openRequirementSaveLoad() {
-    alert('🚧 Guardar/Cargar completo - Próximamente en Fase 4');
+    console.log('💾 Abriendo modal de Guardar/Cargar...');
+    
+    // Crear modal si no existe
+    let modal = document.getElementById('saveLoadModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'saveLoadModal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>💾 Guardar/Cargar Requerimiento</h3>
+                    <button class="modal-close" onclick="closeSaveLoadModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="save-load-section">
+                        <h4>📤 Guardar Requerimiento Actual</h4>
+                        <p>Exporta el requerimiento actual con todos sus casos y escenarios a un archivo JSON.</p>
+                        <button class="btn btn-success" onclick="saveCurrentRequirement()">
+                            💾 Guardar como JSON
+                        </button>
+                    </div>
+                    
+                    <div class="save-load-section">
+                        <h4>📥 Cargar Requerimiento</h4>
+                        <p>Importa un requerimiento desde un archivo JSON (reemplazará el requerimiento actual).</p>
+                        <input type="file" id="loadRequirementFile" accept=".json" style="display: none;" onchange="loadRequirementFromFile(event)">
+                        <button class="btn btn-primary" onclick="document.getElementById('loadRequirementFile').click()">
+                            📂 Seleccionar Archivo JSON
+                        </button>
+                    </div>
+                    
+                    <div class="save-load-section">
+                        <h4>⚠️ Advertencia</h4>
+                        <p class="warning-text">
+                            <strong>Cargar un requerimiento reemplazará completamente el requerimiento actual</strong>, 
+                            incluyendo todos sus casos y escenarios. Esta acción no se puede deshacer.
+                        </p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="closeSaveLoadModal()">Cerrar</button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // Mostrar modal
+    modal.style.display = 'block';
+}
+
+// ===============================================
+// FUNCIONES DE GUARDAR/CARGAR
+// ===============================================
+
+/**
+ * Cierra el modal de guardar/cargar
+ */
+function closeSaveLoadModal() {
+    const modal = document.getElementById('saveLoadModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+/**
+ * Guarda el requerimiento actual como JSON
+ */
+function saveCurrentRequirement() {
+    if (!hasActiveRequirement()) {
+        alert('❌ No hay requerimiento activo para guardar');
+        return;
+    }
+    
+    try {
+        const requirement = currentRequirement;
+        const exportData = {
+            requirement: {
+                id: requirement.id,
+                info: requirement.info,
+                stats: requirement.stats
+            },
+            cases: requirement.cases || [],
+            scenarios: requirement.scenarios || [],
+            exportDate: new Date().toISOString(),
+            version: '1.0'
+        };
+        
+        // Crear y descargar archivo
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `requerimiento_${requirement.info.number || requirement.id}_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        alert('✅ Requerimiento guardado exitosamente');
+        closeSaveLoadModal();
+        
+    } catch (error) {
+        console.error('❌ Error guardando requerimiento:', error);
+        alert('❌ Error al guardar el requerimiento');
+    }
+}
+
+/**
+ * Carga un requerimiento desde archivo JSON
+ */
+function loadRequirementFromFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const data = JSON.parse(e.target.result);
+            
+            // Validar estructura del archivo
+            if (!data.requirement || !data.cases) {
+                throw new Error('Formato de archivo inválido');
+            }
+            
+            // Confirmar reemplazo
+            const confirmMessage = `¿Estás seguro de que quieres reemplazar el requerimiento actual "${currentRequirement?.info?.name || 'Sin nombre'}" con "${data.requirement.info.name}"?\n\nEsta acción no se puede deshacer.`;
+            
+            if (!confirm(confirmMessage)) {
+                return;
+            }
+            
+            // Cargar el nuevo requerimiento
+            loadRequirementData(data);
+            
+            alert('✅ Requerimiento cargado exitosamente');
+            closeSaveLoadModal();
+            
+        } catch (error) {
+            console.error('❌ Error cargando requerimiento:', error);
+            alert('❌ Error al cargar el archivo. Verifica que sea un archivo JSON válido.');
+        }
+    };
+    
+    reader.readAsText(file);
+}
+
+/**
+ * Carga los datos del requerimiento y sincroniza con el dashboard
+ */
+function loadRequirementData(data) {
+    try {
+        console.log('🔄 Cargando datos del requerimiento:', data.requirement.info.name);
+        
+        // 1. Actualizar el requerimiento actual en memoria
+        if (currentRequirement) {
+            currentRequirement.id = data.requirement.id;
+            currentRequirement.info = data.requirement.info;
+            currentRequirement.stats = data.requirement.stats;
+            currentRequirement.cases = data.cases || [];
+            currentRequirement.scenarios = data.scenarios || [];
+        }
+        
+        // 2. Guardar en localStorage de la app
+        saveMulticaseData();
+        
+        // 3. Sincronizar con el dashboard
+        if (typeof syncAppToDashboard === 'function') {
+            syncAppToDashboard();
+        }
+        
+        // 4. Actualizar la interfaz
+        createRequirementHeader();
+        renderCaseTabs();
+        renderCurrentCase();
+        
+        console.log('✅ Requerimiento cargado y sincronizado exitosamente');
+        
+    } catch (error) {
+        console.error('❌ Error cargando datos del requerimiento:', error);
+        throw error;
+    }
 }
 
 // ===============================================
