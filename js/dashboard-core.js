@@ -36,7 +36,13 @@ function createRequirement(data) {
             totalCases: 0,
             completedCases: 0,
             totalScenarios: 0,
-            completedScenarios: 0
+            completedScenarios: 0,
+            totalOK: 0,
+            totalNO: 0,
+            totalPending: 0,
+            successRate: 0,
+            totalHours: 0,
+            bugfixingHours: 0
         }
     };
     
@@ -79,7 +85,13 @@ function updateRequirement(id, updates) {
             totalCases: 0,
             completedCases: 0,
             totalScenarios: 0,
-            completedScenarios: 0
+            completedScenarios: 0,
+            totalOK: 0,
+            totalNO: 0,
+            totalPending: 0,
+            successRate: 0,
+            totalHours: 0,
+            bugfixingHours: 0
         };
         
         // CRÍTICO: Sincronizar casos desde localStorage (multicaseData)
@@ -87,31 +99,32 @@ function updateRequirement(id, updates) {
         
         try {
             const multicaseData = localStorage.getItem('multicaseData');
-            console.log('🔍 DEBUG - multicaseData raw:', multicaseData);
+            /* console.log('🔍 DEBUG - multicaseData raw:', multicaseData); */
             
             if (multicaseData) {
-                const data = JSON.parse(multicaseData);
-                console.log('🔍 DEBUG - multicaseData parsed:', data);
-                console.log('🔍 DEBUG - currentRequirement en localStorage:', data.currentRequirement);
+                // Descomprimir datos si están comprimidos
+                const data = typeof decompressData === 'function' ? decompressData(multicaseData) : JSON.parse(multicaseData);
+                /* console.log('🔍 DEBUG - multicaseData parsed:', data);
+                console.log('🔍 DEBUG - currentRequirement en localStorage:', data.currentRequirement); */
                 
                 if (data.currentRequirement && data.currentRequirement.id === id) {
-                    console.log('📊 Casos en localStorage:', data.currentRequirement.cases?.length || 0);
-                    console.log('📊 Casos en el dashboard:', casesToPreserve.length);
+                    /* console.log('📊 Casos en localStorage:', data.currentRequirement.cases?.length || 0);
+                    console.log('📊 Casos en el dashboard:', casesToPreserve.length); */
                     
                     if (data.currentRequirement.cases && data.currentRequirement.cases.length > 0) {
                         casesToPreserve = data.currentRequirement.cases;
-                        console.log('✅ Usando casos de localStorage (más recientes)');
+                        /* console.log('✅ Usando casos de localStorage (más recientes)'); */
                     }
                 } else {
-                    console.log('⚠️ No hay currentRequirement en localStorage con el mismo ID');
+                    /* console.log('⚠️ No hay currentRequirement en localStorage con el mismo ID');
                     console.log('⚠️ ID buscado:', id);
-                    console.log('⚠️ ID en localStorage:', data.currentRequirement?.id);
+                    console.log('⚠️ ID en localStorage:', data.currentRequirement?.id); */
                 }
             } else {
-                console.log('⚠️ No hay datos multicaseData en localStorage');
+                /* console.log('⚠️ No hay datos multicaseData en localStorage'); */
             }
         } catch (error) {
-            console.error('❌ Error leyendo multicaseData:', error);
+            /* console.error('❌ Error leyendo multicaseData:', error); */
         }
         
         // CRÍTICO: Preservar casos y escenarios existentes
@@ -291,7 +304,9 @@ function calculateRealStatsFromCases(requirement) {
             totalOK: 0,
             totalNO: 0,
             totalPending: 0,
-            successRate: 0
+            successRate: 0,
+            totalHours: 0,
+            bugfixingHours: 0
         };
     }
     
@@ -307,7 +322,8 @@ function calculateRealStatsFromCases(requirement) {
         totalNO: 0,
         totalPending: 0,
         successRate: 0,
-        totalHours: 0
+        totalHours: 0,
+        bugfixingHours: 0
     };
     
     // Contar escenarios por estado y sumar horas
@@ -324,6 +340,12 @@ function calculateRealStatsFromCases(requirement) {
         // Sumar tiempo del escenario (en horas)
         if (scenario.testTime && typeof scenario.testTime === 'number') {
             stats.totalHours += scenario.testTime;
+        }
+        
+        // Sumar tiempo de bugfixing (en horas)
+        if (scenario.bugfixingTimer && scenario.bugfixingTimer.accumulated && typeof scenario.bugfixingTimer.accumulated === 'number') {
+            // Convertir minutos a horas
+            stats.bugfixingHours += scenario.bugfixingTimer.accumulated / 60;
         }
     });
     
@@ -406,15 +428,16 @@ function syncFromAppToDashboard() {
     try {
         // Obtener datos de la app
         const appData = localStorage.getItem('multicaseData');
-        console.log('🔍 DEBUG - appData raw:', appData ? 'Existe' : 'No existe');
+        /* console.log('🔍 DEBUG - appData raw:', appData ? 'Existe' : 'No existe'); */
         
         if (!appData) {
             console.log('ℹ️ No hay datos de la app para sincronizar');
             return false;
         }
         
-        const data = JSON.parse(appData);
-        console.log('🔍 DEBUG - appData parsed:', data);
+        // Descomprimir datos si están comprimidos
+        const data = typeof decompressData === 'function' ? decompressData(appData) : JSON.parse(appData);
+        /* console.log('🔍 DEBUG - appData parsed:', data); */
         
         if (!data.currentRequirement) {
             console.log('ℹ️ No hay requerimiento activo en la app');
@@ -540,7 +563,8 @@ function loadRequirements() {
     try {
         const saved = localStorage.getItem('dashboardRequirements');
         if (saved) {
-            requirementsList = JSON.parse(saved);
+            // Descomprimir datos si están comprimidos
+            requirementsList = typeof decompressData === 'function' ? decompressData(saved) : JSON.parse(saved);
             console.log(`✅ ${requirementsList.length} requerimientos cargados`);
         } else {
             // Crear algunos requerimientos de ejemplo

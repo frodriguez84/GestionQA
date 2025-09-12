@@ -30,6 +30,18 @@ function toggleRowTimer(id) {
         return;
     }
 
+    // Verificar si el MISMO escenario ya tiene un timer de bugfixing activo
+    const scenario = testCases.find(tc => tc.id === id);
+    if (scenario) {
+        const bugfixingTimer = initializeBugfixingTimer(scenario);
+        if (bugfixingTimer.state === 'RUNNING') {
+            if (!confirm(`⚠️ El Escenario ${scenario.scenarioNumber} ya tiene un timer de bugfixing activo.\n\n¿Detenerlo e iniciar timer de testing?`)) {
+                return;
+            }
+            stopBugfixingTimer(id);
+        }
+    }
+
     if (activeTimerId !== null) {
         // Si hay otro activo → Confirmar cambio
         const activeCase = testCases.find(tc => tc.id === activeTimerId);
@@ -219,6 +231,11 @@ function updateAllTimerButtons() {
             }
         }
     });
+    
+    // También actualizar botones de bugfixing
+    if (typeof updateAllBugfixingButtons === 'function') {
+        updateAllBugfixingButtons();
+    }
 }
 
 
@@ -278,6 +295,380 @@ function getTimeStatistics() {
 }
 
 // ===============================================
+// TIMER DE BUGFIXING - SISTEMA CRÍTICO
+// ===============================================
+
+// Variables globales para bugfixing
+let activeBugfixingTimerId = null;
+let bugfixingTimerInterval = null;
+let bugfixingStartTime = null;
+let bugfixingAccumulatedTime = 0;
+
+/**
+ * Inicializa la estructura de timer de bugfixing en un escenario
+ */
+function initializeBugfixingTimer(scenario) {
+    if (!scenario.bugfixingTimer) {
+        scenario.bugfixingTimer = {
+            start: null,
+            accumulated: 0,
+            state: 'PAUSED' // PAUSED, RUNNING
+        };
+    }
+    return scenario.bugfixingTimer;
+}
+
+/**
+ * Formatea tiempo de bugfixing - muestra días si > 24h
+ */
+function formatBugfixingTime(totalMinutes) {
+    const totalHours = totalMinutes / 60;
+    
+    if (totalHours >= 24) {
+        const days = Math.floor(totalHours / 24);
+        const hours = Math.floor(totalHours % 24);
+        return `${days}d ${hours}h`;
+    } else {
+        const hours = Math.floor(totalHours);
+        const minutes = Math.floor(totalMinutes % 60);
+        return `${hours}h ${minutes}m`;
+    }
+}
+
+/**
+ * Inicia el timer de bugfixing para un escenario
+ */
+function startBugfixingTimer(scenarioId) {
+    const scenario = testCases.find(tc => tc.id === scenarioId);
+    if (!scenario) {
+        console.error('❌ No se encontró el escenario para iniciar bugfixing timer:', scenarioId);
+        return false;
+    }
+    
+    // console.log('🔄 INICIANDO timer de bugfixing para escenario:', scenario.scenarioNumber);
+
+    // 🎯 CRÍTICO: Solo permitir timer de bugfixing en escenarios con estado "NO"
+    if (scenario.status !== 'NO') {
+        showError(`Solo se puede iniciar timer de bugfixing en escenarios con estado "NO". Estado actual: ${scenario.status}`, 'Estado incorrecto');
+        return false;
+    }
+
+    // Verificar si el MISMO escenario ya tiene un timer de testing activo
+    if (activeTimerId === scenarioId) {
+        if (!confirm(`⚠️ El Escenario ${scenario.scenarioNumber} ya tiene un timer de testing activo.\n\n¿Detenerlo e iniciar timer de bugfixing?`)) {
+            return false;
+        }
+        stopTimer(scenarioId);
+    }
+    
+    // Verificar si el MISMO escenario ya tiene un timer de bugfixing activo
+    const bugfixingTimer = initializeBugfixingTimer(scenario);
+    // console.log('🔍 DEBUG startBugfixingTimer: Estado actual del timer:', bugfixingTimer.state, 'para escenario:', scenario.scenarioNumber);
+    if (bugfixingTimer.state === 'RUNNING') {
+        console.log('⚠️ Timer de bugfixing ya está corriendo en este escenario');
+        return false;
+    }
+    
+    // Configurar el timer de bugfixing para este escenario específico
+    bugfixingTimer.state = 'RUNNING';
+    bugfixingTimer.start = new Date().toISOString();
+    
+    // Si este es el primer timer de bugfixing activo, establecer como el activo global
+    if (activeBugfixingTimerId === null) {
+        activeBugfixingTimerId = scenarioId;
+        bugfixingStartTime = Date.now();
+        bugfixingAccumulatedTime = bugfixingTimer.accumulated || 0;
+    } else {
+        // Iniciar nuevo timer
+        console.log('🆕 Iniciando nuevo timer de bugfixing...');
+        activeBugfixingTimerId = scenarioId;
+        bugfixingStartTime = Date.now();
+        bugfixingAccumulatedTime = bugfixingTimer.accumulated || 0;
+    }
+
+    // Actualizar estado del escenario
+    bugfixingTimer.start = new Date(bugfixingStartTime).toISOString();
+    bugfixingTimer.state = 'RUNNING';
+
+    // Iniciar interval de actualización
+    if (bugfixingTimerInterval) {
+        clearInterval(bugfixingTimerInterval);
+    }
+    
+    bugfixingTimerInterval = setInterval(() => {
+        updateBugfixingDisplay();
+    }, 1000);
+
+    console.log(`🐛 Timer de bugfixing iniciado para Escenario ${scenario.scenarioNumber} - Ciclo ${scenario.cycleNumber} `);
+    
+    // NO mostrar automáticamente la barra de bugfixing
+    // Solo se mostrará cuando el usuario marque el checkbox del escenario
+    // showBugfixingBar(scenario); // COMENTADO
+
+    showSuccess(`Timer de bugfixing iniciado para Escenario ${scenario.scenarioNumber} - Ciclo ${scenario.cycleNumber}`, 'Bugfixing iniciado');
+    
+    // 🆕 Actualizar indicador visual inmediatamente (con pequeño delay para asegurar renderizado)
+    setTimeout(() => {
+        if (typeof updateAllBugfixingButtons === 'function') {
+            updateAllBugfixingButtons();
+        }
+    }, 100);
+    
+    // 🎯 CRÍTICO: Guardar cambios inmediatamente para persistencia
+    saveToStorage();
+    if (typeof syncScenariosWithCurrentCase === 'function') {
+        syncScenariosWithCurrentCase();
+    }
+    
+    // 🎯 CRÍTICO: También guardar en multicaseData para preservar timers
+    console.log('🔍 DEBUG startBugfixingTimer: saveMulticaseData disponible:', typeof saveMulticaseData === 'function');
+    if (typeof saveMulticaseData === 'function') {
+        console.log('🔄 startBugfixingTimer: Guardando en multicaseData...');
+        saveMulticaseData();
+        console.log('✅ startBugfixingTimer: Guardado en multicaseData completado');
+    } else {
+        console.warn('⚠️ startBugfixingTimer: saveMulticaseData no está disponible');
+    }
+    
+    // console.log('✅ Timer de bugfixing GUARDADO para escenario:', scenario.scenarioNumber);
+    
+    return true;
+}
+
+/**
+ * Detiene el timer de bugfixing para un escenario
+ */
+function stopBugfixingTimer(scenarioId) {
+    const scenario = testCases.find(tc => tc.id === scenarioId);
+    if (!scenario) {
+        console.error('❌ No se encontró el escenario para detener bugfixing timer:', scenarioId);
+        return false;
+    }
+
+    const bugfixingTimer = initializeBugfixingTimer(scenario);
+    
+    if (bugfixingTimer.state === 'RUNNING') {
+        // Calcular tiempo total acumulado
+        const timeSinceStart = bugfixingTimer.start ? (Date.now() - new Date(bugfixingTimer.start).getTime()) / 60000 : 0; // en minutos
+        bugfixingTimer.accumulated += timeSinceStart;
+        bugfixingTimer.state = 'PAUSED';
+        bugfixingTimer.start = null;
+        
+        console.log(`⏹️ Timer de bugfixing detenido para Escenario ${scenario.scenarioNumber}`);
+        console.log(`📊 Tiempo total acumulado: ${formatBugfixingTime(bugfixingTimer.accumulated)}`);
+        
+        // Mostrar toast solo si realmente se detuvo
+        showSuccess(`Timer de bugfixing detenido para Escenario ${scenario.scenarioNumber}`, 'Bugfixing detenido');
+    } else {
+        // Si ya estaba detenido, mostrar mensaje diferente
+        showInfo(`El timer de bugfixing para Escenario ${scenario.scenarioNumber} ya estaba detenido`, 'Timer ya detenido');
+        return true;
+    }
+
+    // Limpiar timer activo si es el mismo
+    if (activeBugfixingTimerId === scenarioId) {
+        activeBugfixingTimerId = null;
+        bugfixingStartTime = null;
+        bugfixingAccumulatedTime = 0;
+        
+        if (bugfixingTimerInterval) {
+            clearInterval(bugfixingTimerInterval);
+            bugfixingTimerInterval = null;
+        }
+        
+        // Ocultar la barra de bugfixing
+        hideBugfixingBar();
+    }
+
+    // Actualizar botones
+    if (typeof updateAllBugfixingButtons === 'function') {
+        updateAllBugfixingButtons();
+    }
+
+    // Guardar cambios
+    saveToStorage();
+    if (typeof syncScenariosWithCurrentCase === 'function') {
+        syncScenariosWithCurrentCase();
+    }
+    
+    // 🎯 CRÍTICO: También guardar en multicaseData para preservar timers
+    console.log('🔍 DEBUG stopBugfixingTimer: saveMulticaseData disponible:', typeof saveMulticaseData === 'function');
+    if (typeof saveMulticaseData === 'function') {
+        console.log('🔄 stopBugfixingTimer: Guardando en multicaseData...');
+        saveMulticaseData();
+        console.log('✅ stopBugfixingTimer: Guardado en multicaseData completado');
+        
+        // Verificar que realmente se guardó
+        try {
+            const compressedData = localStorage.getItem('multicaseData');
+            if (compressedData) {
+                const data = typeof decompressData === 'function' ? decompressData(compressedData) : JSON.parse(compressedData);
+                console.log('🔍 DEBUG: multicaseData después de guardar:', {
+                    existe: !!data,
+                    tieneCases: !!(data && data.cases),
+                    casosLength: data?.cases?.length || 0
+                });
+            }
+        } catch (e) {
+            console.warn('⚠️ Error verificando multicaseData:', e);
+        }
+    } else {
+        console.warn('⚠️ stopBugfixingTimer: saveMulticaseData no está disponible');
+    }
+
+    return true;
+}
+
+/**
+ * Actualiza el display del timer de bugfixing
+ */
+function updateBugfixingDisplay() {
+    if (activeBugfixingTimerId === null) return;
+
+    const scenario = testCases.find(tc => tc.id === activeBugfixingTimerId);
+    if (!scenario) return;
+
+    // Obtener el timer actual del escenario
+    const bugfixingTimer = initializeBugfixingTimer(scenario);
+    
+    // Calcular tiempo total correctamente
+    let totalTime = bugfixingTimer.accumulated || 0;
+    
+    if (bugfixingTimer.state === 'RUNNING' && bugfixingTimer.start) {
+        const timeSinceStart = (Date.now() - new Date(bugfixingTimer.start).getTime()) / 60000; // en minutos
+        totalTime += timeSinceStart;
+    }
+
+    // Actualizar display en el div rojo si existe
+    const bugfixingDisplay = document.getElementById('bugfixingDisplay');
+    if (bugfixingDisplay) {
+        bugfixingDisplay.textContent = formatBugfixingTime(totalTime);
+    }
+
+    // Actualizar el botón en acciones
+    const bugfixingBtn = document.getElementById(`bugfixingBtn-${activeBugfixingTimerId}`);
+    if (bugfixingBtn) {
+        bugfixingBtn.innerHTML = '⏹️';
+        bugfixingBtn.title = `Detener bugfixing (${formatBugfixingTime(totalTime)})`;
+    }
+}
+
+/**
+ * Muestra la barra de bugfixing para un escenario
+ */
+function showBugfixingBar(scenario) {
+    const bugfixingBar = document.getElementById('bugfixingBar');
+    const scenarioEl = document.getElementById('bugfixingScenario');
+    const descriptionEl = document.getElementById('bugfixingDescription');
+    const displayEl = document.getElementById('bugfixingDisplay');
+
+    if (bugfixingBar && scenarioEl && descriptionEl && displayEl) {
+        scenarioEl.textContent = `Escenario ${scenario.scenarioNumber}`;
+        descriptionEl.textContent = scenario.description.substring(0, 80) + (scenario.description.length > 80 ? '...' : '');
+        
+        // Calcular tiempo actual (acumulado + tiempo transcurrido desde start)
+        const bugfixingTimer = initializeBugfixingTimer(scenario);
+        let currentTime = bugfixingTimer.accumulated || 0;
+        
+        if (bugfixingTimer.state === 'RUNNING' && bugfixingTimer.start) {
+            const timeSinceStart = (Date.now() - new Date(bugfixingTimer.start).getTime()) / 60000; // en minutos
+            currentTime += timeSinceStart;
+        }
+        
+        displayEl.textContent = formatBugfixingTime(currentTime);
+
+        bugfixingBar.style.display = 'block';
+        
+        // Establecer como timer activo para actualización continua
+        activeBugfixingTimerId = scenario.id;
+        bugfixingStartTime = bugfixingTimer.start ? new Date(bugfixingTimer.start).getTime() : Date.now();
+        bugfixingAccumulatedTime = bugfixingTimer.accumulated || 0;
+        
+        // Iniciar interval si no existe
+        if (!bugfixingTimerInterval) {
+            bugfixingTimerInterval = setInterval(() => {
+                updateBugfixingDisplay();
+            }, 1000);
+        }
+    }
+}
+
+/**
+ * Oculta la barra de bugfixing
+ */
+function hideBugfixingBar() {
+    const bugfixingBar = document.getElementById('bugfixingBar');
+    if (bugfixingBar) {
+        bugfixingBar.style.display = 'none';
+    }
+}
+
+/**
+ * Verifica y restaura timers de bugfixing al cargar la app
+ */
+function restoreBugfixingTimers() {
+    let restoredCount = 0;
+    testCases.forEach(scenario => {
+        const bugfixingTimer = initializeBugfixingTimer(scenario);
+        
+        if (bugfixingTimer.state === 'RUNNING' && bugfixingTimer.start) {
+            // Calcular tiempo transcurrido desde que se cerró la app
+            const timeSinceStart = (Date.now() - new Date(bugfixingTimer.start).getTime()) / 60000;
+            bugfixingTimer.accumulated += timeSinceStart;
+            
+            // Actualizar el start time para continuar el timer
+            bugfixingTimer.start = new Date().toISOString();
+            
+            // Si es el primer timer restaurado, establecer como activo global
+            if (activeBugfixingTimerId === null) {
+                activeBugfixingTimerId = scenario.id;
+                bugfixingStartTime = Date.now();
+                bugfixingAccumulatedTime = bugfixingTimer.accumulated;
+                
+                // Iniciar interval si no existe
+                if (!bugfixingTimerInterval) {
+                    bugfixingTimerInterval = setInterval(() => {
+                        updateBugfixingDisplay();
+                    }, 1000);
+                }
+            }
+            
+            restoredCount++;
+        }
+    });
+    
+    if (restoredCount > 0) {
+        showInfo(`${restoredCount} timers de bugfixing restaurados`, 'Timers restaurados');
+    }
+}
+
+/**
+ * Obtiene estadísticas de bugfixing
+ */
+function getBugfixingStatistics() {
+    let totalBugfixingTime = 0;
+    let activeTimers = 0;
+    
+    testCases.forEach(scenario => {
+        const bugfixingTimer = initializeBugfixingTimer(scenario);
+        
+        if (bugfixingTimer.state === 'RUNNING') {
+            activeTimers++;
+            const timeSinceStart = (Date.now() - new Date(bugfixingTimer.start).getTime()) / 60000;
+            totalBugfixingTime += bugfixingTimer.accumulated + timeSinceStart;
+        } else {
+            totalBugfixingTime += bugfixingTimer.accumulated || 0;
+        }
+    });
+    
+    return {
+        totalTime: totalBugfixingTime,
+        activeTimers: activeTimers,
+        formattedTime: formatBugfixingTime(totalBugfixingTime)
+    };
+}
+
+// ===============================================
 // EXPOSICIÓN DE FUNCIONES GLOBALES
 // ===============================================
 
@@ -288,4 +679,13 @@ window.pauseTimer = pauseTimer;
 window.getTotalTimeHours = getTotalTimeHours;
 window.getTimeStatistics = getTimeStatistics;
 window.formatTimeDisplay = formatTimeDisplay;
+
+// Funciones de bugfixing
+window.startBugfixingTimer = startBugfixingTimer;
+window.stopBugfixingTimer = stopBugfixingTimer;
+window.restoreBugfixingTimers = restoreBugfixingTimers;
+window.getBugfixingStatistics = getBugfixingStatistics;
+window.formatBugfixingTime = formatBugfixingTime;
+window.showBugfixingBar = showBugfixingBar;
+window.hideBugfixingBar = hideBugfixingBar;
 

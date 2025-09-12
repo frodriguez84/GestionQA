@@ -185,7 +185,7 @@ function getFilteredScenarios(scenarios) {
  * Inicializa todos los proxies
  */
 function initializeLegacyProxies() {
-    console.log('🔄 Inicializando proxies legacy...');
+    // console.log('🔄 Inicializando proxies legacy...');
     
     // Reemplazar variables globales con proxies
     window.testCases = createTestCasesProxy();
@@ -193,7 +193,7 @@ function initializeLegacyProxies() {
     window.inputVariableNames = createInputVariableNamesProxy();
     window.filteredCases = createFilteredCasesProxy();
     
-    console.log('✅ Proxies legacy inicializados');
+    // console.log('✅ Proxies legacy inicializados');
 }
 
 /**
@@ -205,7 +205,7 @@ function syncLegacyToMulticase() {
         return;
     }
     
-    console.log('🔄 Sincronizando datos legacy con multicaso...');
+    // console.log('🔄 Sincronizando datos legacy con multicaso...');
     
     // Si hay datos legacy en localStorage, migrarlos
     const legacyTestCases = localStorage.getItem('testCases');
@@ -213,21 +213,21 @@ function syncLegacyToMulticase() {
     const legacyInputVariableNames = localStorage.getItem('inputVariableNames');
     
     if (legacyTestCases || legacyRequirementInfo || legacyInputVariableNames) {
-        console.log('📦 Datos legacy encontrados, migrando...');
+        // console.log('📦 Datos legacy encontrados, migrando...');
         
         // CRÍTICO: Solo migrar si el requerimiento actual NO viene del dashboard
         const isFromDashboard = currentRequirement._fromDashboard === true;
         
         if (isFromDashboard) {
-            console.log('⚠️ Requerimiento viene del dashboard, NO migrando datos legacy');
-            console.log('🧹 Limpiando datos legacy sin migrar...');
+            // console.log('⚠️ Requerimiento viene del dashboard, NO migrando datos legacy');
+            // console.log('🧹 Limpiando datos legacy sin migrar...');
             
-            // Solo limpiar datos legacy sin migrar
-            localStorage.removeItem('testCases');
+            // 🎯 CRÍTICO: NO borrar 'testCases' porque contiene timers de bugfixing
+            // localStorage.removeItem('testCases'); // COMENTADO - contiene timers de bugfixing
             localStorage.removeItem('requirementInfo');
             localStorage.removeItem('inputVariableNames');
             
-            console.log('✅ Datos legacy limpiados (sin migración)');
+            // console.log('✅ Datos legacy limpiados (sin migración) - testCases preservado');
             return;
         }
         

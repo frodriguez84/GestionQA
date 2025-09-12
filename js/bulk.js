@@ -21,6 +21,9 @@ window.toggleSelectAll = function () {
 
     updateBulkToolbar();
     renderTestCases(); // Re-renderizar para actualizar checkboxes
+    
+    // 🆕 NUEVA FUNCIONALIDAD: Controlar visibilidad de timer bars
+    updateTimerBarsVisibility();
 }
 
 // Función para alternar selección de un caso individual
@@ -35,6 +38,8 @@ window.toggleCaseSelection = function (id) {
     updateBulkToolbar();
     updateRowSelection(id);
     
+    // 🆕 NUEVA FUNCIONALIDAD: Controlar visibilidad de timer bars
+    updateTimerBarsVisibility();
 }
 
 // Función para actualizar el estado del checkbox "Select All"
@@ -486,4 +491,65 @@ document.addEventListener('DOMContentLoaded', function () {
 
 // Exponer función updateBulkToolbar globalmente
 window.updateBulkToolbar = updateBulkToolbar;
+
+// ===============================================
+// CONTROL DE VISIBILIDAD DE TIMER BARS
+// ===============================================
+
+/**
+ * Actualiza la visibilidad de las barras de timer basándose en los checkboxes seleccionados
+ */
+function updateTimerBarsVisibility() {
+    const selectedCheckboxes = Array.from(selectedCases);
+    
+    // Verificar si hay exactamente UN escenario seleccionado
+    if (selectedCheckboxes.length === 1) {
+        const selectedId = selectedCheckboxes[0];
+        const scenario = testCases.find(tc => tc.id === selectedId);
+        
+        if (scenario) {
+            // Verificar si tiene timer de testing activo
+            if (activeTimerId === selectedId) {
+                showTestingBar(scenario);
+            } else {
+                hideTestingBar();
+            }
+            
+            // Verificar si tiene timer de bugfixing activo
+            const bugfixingTimer = scenario.bugfixingTimer || { state: 'PAUSED' };
+            if (bugfixingTimer.state === 'RUNNING') {
+                showBugfixingBar(scenario);
+            } else {
+                hideBugfixingBar();
+            }
+        }
+    } else {
+        // Si hay 0 o más de 1 seleccionado, ocultar ambos timer bars
+        hideTestingBar();
+        hideBugfixingBar();
+    }
+}
+
+/**
+ * Muestra la barra de timer de testing
+ */
+function showTestingBar(scenario) {
+    const timerBar = document.getElementById('timerBar');
+    if (timerBar) {
+        timerBar.style.display = 'block';
+    }
+}
+
+/**
+ * Oculta la barra de timer de testing
+ */
+function hideTestingBar() {
+    const timerBar = document.getElementById('timerBar');
+    if (timerBar) {
+        timerBar.style.display = 'none';
+    }
+}
+
+// Exponer función globalmente
+window.updateTimerBarsVisibility = updateTimerBarsVisibility;
 

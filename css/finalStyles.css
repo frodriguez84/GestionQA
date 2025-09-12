@@ -1091,6 +1091,71 @@ body.dark-mode .timer-active-row {
 }
 
 
+/* ===============================================
+   TIMER DE BUGFIXING - BARRA ROJA
+   =============================================== */
+
+/* Barra de timer de bugfixing */
+.bugfixing-active-bar {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1));
+    border: 2px solid rgba(239, 68, 68, 0.3);
+    border-radius: var(--radius-md);
+    margin-bottom: var(--spacing-lg);
+    padding: var(--spacing-md);
+    animation: slideDown var(--transition-normal) ease;
+}
+
+.bugfixing-bar-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.bugfixing-info {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-md);
+    flex: 1;
+}
+
+.bugfixing-icon {
+    font-size: 1.8em;
+    animation: pulse 2s ease-in-out infinite;
+}
+
+.bugfixing-details {
+    flex: 1;
+}
+
+.bugfixing-details strong {
+    display: block;
+    color: var(--danger-color);
+    font-size: 1.2em;
+    margin-bottom: 4px;
+}
+
+.bugfixing-display {
+    font-family: 'Courier New', 'Monaco', 'Menlo', monospace !important;
+    font-size: 2em !important;
+    font-weight: bold !important;
+    color: var(--danger-color) !important;
+    background: rgba(239, 68, 68, 0.1) !important;
+    padding: 10px 20px !important;
+    border-radius: var(--radius-sm) !important;
+    min-width: 100px !important;
+    text-align: center !important;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+    border: 2px solid rgba(239, 68, 68, 0.3);
+    transition: all 0.3s ease;
+}
+
+.bugfixing-controls {
+    display: flex;
+    gap: var(--spacing-sm);
+}
+
 /* Modo oscuro */
 body.dark-mode .timer-active-bar {
     background: linear-gradient(135deg, rgba(16, 185, 129, 0.2), rgba(5, 150, 105, 0.2));
@@ -1106,6 +1171,23 @@ body.dark-mode .timer-display {
     background: rgba(16, 185, 129, 0.2) !important;
     border-color: rgba(16, 185, 129, 0.5) !important;
     text-shadow: 0 2px 4px rgba(16, 185, 129, 0.5);
+}
+
+/* Modo oscuro para bugfixing */
+body.dark-mode .bugfixing-active-bar {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2));
+    border-color: rgba(239, 68, 68, 0.5);
+}
+
+body.dark-mode .bugfixing-details strong {
+    color: var(--danger-light);
+}
+
+body.dark-mode .bugfixing-display {
+    color: var(--danger-light) !important;
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: rgba(239, 68, 68, 0.5) !important;
+    text-shadow: 0 2px 4px rgba(239, 68, 68, 0.5);
 }
 
 body.dark-mode .col-tiempo input[type="number"] {
@@ -4061,5 +4143,73 @@ body.dark-theme .toast-close:hover {
     .toast {
         min-width: auto;
         max-width: none;
+    }
+}
+
+/* ===============================================
+   🐛 INDICADOR DE BUGFIXING ACTIVO
+   =============================================== */
+
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    position: relative;
+}
+
+.bugfixing-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, #ff4444, #ff6666);
+    border-radius: 50%;
+    font-size: 12px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
+    animation: bugfixingPulse 2s infinite;
+}
+
+.bugfixing-indicator:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(255, 68, 68, 0.5);
+}
+
+/* Animación de pulso para indicar que está activo */
+@keyframes bugfixingPulse {
+    0% {
+        box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
+    }
+    50% {
+        box-shadow: 0 2px 8px rgba(255, 68, 68, 0.6);
+    }
+    100% {
+        box-shadow: 0 2px 4px rgba(255, 68, 68, 0.3);
+    }
+}
+
+/* Modo oscuro */
+body.dark-theme .bugfixing-indicator {
+    background: linear-gradient(135deg, #ff4444, #cc3333);
+    box-shadow: 0 2px 4px rgba(255, 68, 68, 0.4);
+}
+
+body.dark-theme .bugfixing-indicator:hover {
+    box-shadow: 0 4px 8px rgba(255, 68, 68, 0.7);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .checkbox-container {
+        gap: 6px;
+    }
+    
+    .bugfixing-indicator {
+        width: 18px;
+        height: 18px;
+        font-size: 11px;
     }
 }

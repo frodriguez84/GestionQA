@@ -92,11 +92,11 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(event.request)
         .then(response => {
-          console.log(`🌐 DEV: ${url.pathname} desde red`);
+          /* console.log(`🌐 DEV: ${url.pathname} desde red`); */
           return response;
         })
         .catch(() => {
-          console.log(`📦 DEV: ${url.pathname} fallback a cache`);
+          /* console.log(`📦 DEV: ${url.pathname} fallback a cache`); */
           return caches.match(event.request);
         })
     );
@@ -108,13 +108,13 @@ self.addEventListener('fetch', event => {
     caches.match(event.request)
       .then(response => {
         if (response) {
-          console.log(`📦 Cache: ${url.pathname}`);
+          /* console.log(`📦 Cache: ${url.pathname}`); */
           return response;
         }
 
         return fetch(event.request)
           .then(fetchResponse => {
-            console.log(`🌐 Red: ${url.pathname}`);
+            /* console.log(`🌐 Red: ${url.pathname}`); */
             
             // Cachear respuesta válida
             if (fetchResponse && fetchResponse.status === 200 && fetchResponse.type === 'basic') {

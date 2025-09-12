@@ -532,6 +532,7 @@ window.duplicateTestCase = function (id) {
     duplicatedCase.testTime = 0; // Resetear tiempo
     duplicatedCase.observations = ''; // Limpiar observaciones
     duplicatedCase.errorNumber = ''; // Limpiar número de error
+    duplicatedCase.evidence = []; // Limpiar evidencias
 
     // LÓGICA MEJORADA: Detectar si es el último escenario
     const originalScenarioNumber = parseInt(originalCase.scenarioNumber) || 0;
@@ -595,14 +596,9 @@ window.duplicateTestCase = function (id) {
     }
     renderFixedVariablesInputs(values);
 
-    // Cargar evidencias duplicadas
+    // Cargar evidencias duplicadas - LIMPIAR EVIDENCIAS
     document.getElementById('evidenceContainer').innerHTML = '';
-    if (duplicatedCase.evidence && duplicatedCase.evidence.length > 0) {
-        duplicatedCase.evidence.forEach(evidence => {
-            addEvidenceToContainer(evidence.name, evidence.data, evidence.mime);
-
-        });
-    }
+    // NO cargar evidencias del escenario original - empezar limpio
 
     // NO agregar a testCases aún - solo guardar temporalmente
 
@@ -838,9 +834,16 @@ window.renderTestCases = function () {
             <tr class="${statusClass} ${isSelected ? 'row-selected' : ''}" data-case-id="${testCase.id}">
                 <!-- Checkbox de selección -->
                 <td class="checkbox-column">
-                    <input type="checkbox" ${isSelected ? 'checked' : ''} 
-                           onchange="toggleCaseSelection(${testCase.id})" 
-                           title="Seleccionar caso">
+                    <div class="checkbox-container">
+                        <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                               onchange="toggleCaseSelection(${testCase.id})" 
+                               title="Seleccionar caso">
+                        ${testCase.bugfixingTimer?.state === 'RUNNING' ? `
+                            <span class="bugfixing-indicator" 
+                                  title="Timer de bugfixing activo: ${formatBugfixingTime((testCase.bugfixingTimer.accumulated || 0) + (testCase.bugfixingTimer.start ? (Date.now() - new Date(testCase.bugfixingTimer.start).getTime()) / 60000 : 0))}"
+                                  id="bugfixing-indicator-${testCase.id}">🐛</span>
+                        ` : ''}
+                    </div>
                 </td>
                 
                 <!-- NUEVA COLUMNA DE DRAG HANDLE -->
@@ -898,6 +901,14 @@ window.renderTestCases = function () {
                             title="${activeTimerId === testCase.id ? 'Detener cronómetro' : 'Iniciar cronómetro'}">
                         ${activeTimerId === testCase.id ? '⏹️' : '⏱️'}
                     </button>
+                    ${testCase.status === 'NO' || testCase.bugfixingTimer?.state === 'RUNNING' ? `
+                    <button class="btn ${testCase.bugfixingTimer?.state === 'RUNNING' ? 'btn-danger' : 'btn-warning'} btn-small" 
+                            onclick="${testCase.bugfixingTimer?.state === 'RUNNING' ? 'stopBugfixingTimer' : 'startBugfixingTimer'}(${testCase.id})" 
+                            id="bugfixingBtn-${testCase.id}" 
+                            title="${testCase.bugfixingTimer?.state === 'RUNNING' ? 'Detener bugfixing' : 'Iniciar bugfixing'}">
+                        ${testCase.bugfixingTimer?.state === 'RUNNING' ? '⏹️' : '🐛'}
+                    </button>
+                    ` : ''}
                 </td>
             </tr>
         `;
@@ -912,7 +923,7 @@ window.renderTestCases = function () {
                 const testers = [...new Set(testCases.map(tc => tc.tester).filter(t => t && t.trim() !== ''))];
                 if (testers.length > 0) {
                     updateFilters();
-                    console.log('✅ Filtros actualizados después de renderizar casos');
+                    // console.log('✅ Filtros actualizados después de renderizar casos');
                 }
             }
             window.updatingFilters = false;
@@ -982,7 +993,7 @@ window.updateFilters = function () {
     // Evitar loops infinitos
     if (window.updatingFilters) return;
 
-    console.log('🔄 Actualizando filtros...');
+    // console.log('🔄 Actualizando filtros...');
 
     // 🎯 SINCRONIZAR PRIMERO CON MULTICASO SI ES NECESARIO
     if (typeof syncScenariosWithCurrentCase === 'function') {
@@ -1001,7 +1012,7 @@ window.updateFilters = function () {
     // 🎯 OBTENER TESTERS DE testCases (sincronizado con multicaso)
     const testers = [...new Set(testCases.map(tc => tc.tester).filter(t => t && t.trim() !== ''))];
 
-    console.log('📊 Testers encontrados:', testers);
+    // console.log('📊 Testers encontrados:', testers);
 
     testerFilter.innerHTML = '<option value="">Todos</option>';
     testers.forEach(tester => {
@@ -1016,7 +1027,7 @@ window.updateFilters = function () {
     filteredCases = [...testCases];
     applyFilters();
 
-    console.log('✅ Filtros actualizados - Testers disponibles:', testers.length);
+    // console.log('✅ Filtros actualizados - Testers disponibles:', testers.length);
 }
 
 // ===============================================
@@ -1225,12 +1236,12 @@ window.updateStatusAndDate = function (id, value) {
         // Actualizar el estado
         testCase.status = value;
 
-        console.log('✅ Estado actualizado en testCases:', {
+        /* console.log('✅ Estado actualizado en testCases:', {
             id: testCase.id,
             scenario: testCase.scenarioNumber,
             cycle: testCase.cycleNumber,
             newStatus: value
-        });
+        }); */
 
         // Si no hay fecha y el status es OK o NO, poner la fecha de hoy
         if (!testCase.executionDate && (value === 'OK' || value === 'NO')) {
@@ -1248,10 +1259,15 @@ window.updateStatusAndDate = function (id, value) {
             syncScenariosWithCurrentCase();
         }
 
+        // 🎯 CRÍTICO: Actualizar botones de bugfixing cuando cambie el estado
+        if (typeof updateAllBugfixingButtons === 'function') {
+            updateAllBugfixingButtons();
+        }
+        
         // 🎯 CRÍTICO: Sincronizar con dashboard después de modificar escenario
-        console.log('🔍 DEBUG updateStatusAndDate - Verificando sincronización...');
+        /* console.log('🔍 DEBUG updateStatusAndDate - Verificando sincronización...');
         console.log('🔍 DEBUG updateStatusAndDate - syncOnScenarioModified disponible:', typeof syncOnScenarioModified);
-        console.log('🔍 DEBUG updateStatusAndDate - window.syncOnScenarioModified disponible:', typeof window.syncOnScenarioModified);
+        console.log('🔍 DEBUG updateStatusAndDate - window.syncOnScenarioModified disponible:', typeof window.syncOnScenarioModified); */
         
         if (typeof syncOnScenarioModified === 'function') {
             console.log('🔄 Sincronizando escenario modificado con dashboard...');
@@ -1333,10 +1349,73 @@ window.handleEvidenceUpload = handleEvidenceUpload;
 window.addEvidenceToContainer = addEvidenceToContainer;
 window.zoomEvidenceImage = zoomEvidenceImage;
 window.removeVarName = removeVarName;
+window.formatDateForDisplay = formatDateForDisplay;
 
 // ✅ FUNCIONES CRÍTICAS PARA DUPLICACIÓN
 window.insertCaseInCorrectPosition = insertCaseInCorrectPosition;
 window.renumberScenariosAfter = renumberScenariosAfter;
+
+// ✅ FUNCIONES PARA BUGFIXING
+window.updateAllBugfixingButtons = function() {
+    // Actualizar todos los botones de bugfixing en la tabla
+    testCases.forEach(tc => {
+        const btn = document.getElementById(`bugfixingBtn-${tc.id}`);
+        const bugfixingTimer = tc.bugfixingTimer || { state: 'PAUSED', accumulated: 0 };
+        
+        // Solo mostrar botón si el estado es NO o si hay un timer corriendo
+        const shouldShowButton = tc.status === 'NO' || bugfixingTimer.state === 'RUNNING';
+        
+        if (btn) {
+            if (shouldShowButton) {
+                // Mostrar botón
+                btn.style.display = 'inline-block';
+                
+                if (bugfixingTimer.state === 'RUNNING') {
+                    btn.innerHTML = '⏹️';
+                    btn.title = 'Detener bugfixing';
+                    btn.className = 'btn btn-danger btn-small';
+                    btn.onclick = () => stopBugfixingTimer(tc.id);
+                } else {
+                    btn.innerHTML = '🐛';
+                    btn.title = 'Iniciar bugfixing';
+                    btn.className = 'btn btn-warning btn-small';
+                    btn.onclick = () => startBugfixingTimer(tc.id);
+                }
+            } else {
+                // Ocultar botón
+                btn.style.display = 'none';
+            }
+        }
+        
+        // 🆕 ACTUALIZAR INDICADOR VISUAL AL LADO DEL CHECKBOX
+        const indicator = document.getElementById(`bugfixing-indicator-${tc.id}`);
+        
+        if (bugfixingTimer.state === 'RUNNING') {
+            // Mostrar indicador si no existe
+            if (!indicator) {
+                const checkboxContainer = document.querySelector(`tr[data-case-id="${tc.id}"] .checkbox-container`);
+                if (checkboxContainer) {
+                    const currentTime = (bugfixingTimer.accumulated || 0) + (bugfixingTimer.start ? (Date.now() - new Date(bugfixingTimer.start).getTime()) / 60000 : 0);
+                    const indicatorHTML = `
+                        <span class="bugfixing-indicator" 
+                              title="Timer de bugfixing activo: ${formatBugfixingTime(currentTime)}"
+                              id="bugfixing-indicator-${tc.id}">🐛</span>
+                    `;
+                    checkboxContainer.insertAdjacentHTML('beforeend', indicatorHTML);
+                }
+            } else {
+                // Actualizar tooltip con tiempo actual
+                const currentTime = (bugfixingTimer.accumulated || 0) + (bugfixingTimer.start ? (Date.now() - new Date(bugfixingTimer.start).getTime()) / 60000 : 0);
+                indicator.title = `Timer de bugfixing activo: ${formatBugfixingTime(currentTime)}`;
+            }
+        } else {
+            // Ocultar indicador si existe
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+    });
+};
 
 
 

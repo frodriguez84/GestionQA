@@ -3,6 +3,38 @@
 // ===============================================
 
 // ===============================================
+// FUNCIONES AUXILIARES
+// ===============================================
+
+/**
+ * Preserva los timers de bugfixing durante la sincronización
+ */
+function preserveBugfixingTimers(appCases, dashboardCases) {
+    if (!appCases || !dashboardCases) return;
+    
+    appCases.forEach(appCase => {
+        const dashboardCase = dashboardCases.find(dc => dc.id === appCase.id);
+        if (dashboardCase && appCase.scenarios) {
+            appCase.scenarios.forEach(appScenario => {
+                const dashboardScenario = dashboardCase.scenarios?.find(ds => ds.id === appScenario.id);
+                if (dashboardScenario && appScenario.bugfixingTimer) {
+                    // Preservar el timer de bugfixing del escenario de la app (RUNNING o PAUSED)
+                    dashboardScenario.bugfixingTimer = {
+                        ...appScenario.bugfixingTimer,
+                        // Mantener el estado y tiempo acumulado
+                    };
+                    console.log(`🔄 Timer preservado para Caso ${appCase.id.split('_')[1]}, Escenario ${appScenario.scenarioNumber} - Ciclo ${appScenario.cycleNumber}:`, {
+                        state: appScenario.bugfixingTimer.state,
+                        accumulated: appScenario.bugfixingTimer.accumulated,
+                        tiempoFormateado: `${Math.floor(appScenario.bugfixingTimer.accumulated / 60)}h ${Math.floor(appScenario.bugfixingTimer.accumulated % 60)}m`
+                    });
+                }
+            });
+        }
+    });
+}
+
+// ===============================================
 // VARIABLES GLOBALES
 // ===============================================
 
@@ -57,31 +89,44 @@ function syncDashboardToApp(requirementId) {
         };
         
         // DEBUG CRÍTICO: Verificar casos antes de establecer
-        console.log('🔍 DEBUG syncDashboardToApp - Casos del dashboard:', requirement.cases?.length || 0);
+        /* console.log('🔍 DEBUG syncDashboardToApp - Casos del dashboard:', requirement.cases?.length || 0);
         console.log('🔍 DEBUG syncDashboardToApp - Primer caso del dashboard:', requirement.cases?.[0]);
-        console.log('🔍 DEBUG syncDashboardToApp - Escenarios del primer caso:', requirement.cases?.[0]?.scenarios?.length || 0);
+        console.log('🔍 DEBUG syncDashboardToApp - Escenarios del primer caso:', requirement.cases?.[0]?.scenarios?.length || 0); */
         
-        // Verificar si hay un currentRequirement existente con más casos
-        if (window.currentRequirement && window.currentRequirement.cases && window.currentRequirement.cases.length > 0) {
-            console.log('⚠️ ADVERTENCIA: Ya existe currentRequirement con casos:', window.currentRequirement.cases.length);
-            console.log('⚠️ ADVERTENCIA: Casos del dashboard:', multicaseRequirement.cases.length);
+        // 🎯 CRÍTICO: Preservar timers de bugfixing ANTES de sobrescribir datos
+        // Buscar casos existentes en localStorage para preservar timers
+        try {
+            const compressedMulticaseData = localStorage.getItem('multicaseData');
+            console.log('🔍 DEBUG: compressedMulticaseData existe:', !!compressedMulticaseData);
             
-            // Si el dashboard tiene menos casos, mantener los de la app
-            if (window.currentRequirement.cases.length > multicaseRequirement.cases.length) {
-                console.log('🔄 MANTENIENDO casos de la app (más recientes)');
-                multicaseRequirement.cases = window.currentRequirement.cases;
+            if (compressedMulticaseData) {
+                // Descomprimir datos si están comprimidos
+                const existingMulticaseData = typeof decompressData === 'function' ? 
+                    decompressData(compressedMulticaseData) : 
+                    JSON.parse(compressedMulticaseData);
+                
+                console.log('🔍 DEBUG: existingMulticaseData:', {
+                    existe: !!existingMulticaseData,
+                    tieneCurrentRequirement: !!(existingMulticaseData && existingMulticaseData.currentRequirement),
+                    tieneCases: !!(existingMulticaseData && existingMulticaseData.currentRequirement && existingMulticaseData.currentRequirement.cases),
+                    casosLength: existingMulticaseData?.currentRequirement?.cases?.length || 0
+                });
+                
+                if (existingMulticaseData && existingMulticaseData.currentRequirement && existingMulticaseData.currentRequirement.cases && existingMulticaseData.currentRequirement.cases.length > 0) {
+                    console.log('🔄 PRESERVANDO timers desde multicaseData:', existingMulticaseData.currentRequirement.cases.length, 'casos');
+                    preserveBugfixingTimers(existingMulticaseData.currentRequirement.cases, multicaseRequirement.cases);
+                } else {
+                    console.log('⚠️ No hay casos para preservar en multicaseData');
+                }
+            } else {
+                console.log('⚠️ No hay multicaseData en localStorage');
             }
-            
-            // 🆕 PRESERVAR INFORMACIÓN BÁSICA DEL DASHBOARD PERO MANTENER CASOS DE LA APP
-            console.log('🔄 Sincronizando solo información básica del dashboard...');
-            multicaseRequirement.info = {
-                ...multicaseRequirement.info, // Información del dashboard
-                // Mantener casos de la app
-            };
+        } catch (e) {
+            console.warn('⚠️ No se pudieron preservar timers desde localStorage:', e);
         }
         
-        console.log('📊 Casos del requerimiento:', multicaseRequirement.cases.length);
-        console.log('📊 Casos del dashboard:', requirement.cases?.length || 0);
+        /* console.log('📊 Casos del requerimiento:', multicaseRequirement.cases.length);
+        console.log('📊 Casos del dashboard:', requirement.cases?.length || 0); */
         
         // Guardar logs persistentes
         const debugLogs = JSON.parse(localStorage.getItem('debugLogs') || '[]');
@@ -214,15 +259,15 @@ function syncAppToDashboard() {
         }
         
         // DEBUG CRÍTICO: Verificar estado de currentRequirement
-        console.log('🔍 DEBUG syncAppToDashboard - window.currentRequirement:', window.currentRequirement);
+        /* console.log('🔍 DEBUG syncAppToDashboard - window.currentRequirement:', window.currentRequirement);
         console.log('🔍 DEBUG syncAppToDashboard - window.currentRequirement.cases:', window.currentRequirement.cases);
-        console.log('🔍 DEBUG syncAppToDashboard - window.currentRequirement.cases.length:', window.currentRequirement.cases?.length || 0);
+        console.log('🔍 DEBUG syncAppToDashboard - window.currentRequirement.cases.length:', window.currentRequirement.cases?.length || 0); */
         
         // Verificar también currentRequirement local
         if (typeof currentRequirement !== 'undefined') {
-            console.log('🔍 DEBUG syncAppToDashboard - currentRequirement local:', currentRequirement);
+            /* console.log('🔍 DEBUG syncAppToDashboard - currentRequirement local:', currentRequirement);
             console.log('🔍 DEBUG syncAppToDashboard - currentRequirement.cases local:', currentRequirement.cases);
-            console.log('🔍 DEBUG syncAppToDashboard - currentRequirement.cases.length local:', currentRequirement.cases?.length || 0);
+            console.log('🔍 DEBUG syncAppToDashboard - currentRequirement.cases.length local:', currentRequirement.cases?.length || 0); */
         }
         
         // Obtener datos del dashboard
@@ -237,15 +282,15 @@ function syncAppToDashboard() {
         
         if (requirementIndex === -1) {
             console.warn('⚠️ Requerimiento no encontrado en dashboard');
-            console.log('🔍 DEBUG - IDs disponibles en dashboard:', dashboardData.requirements.map(r => r.id));
-            console.log('🔍 DEBUG - ID buscado:', window.currentRequirement.id);
+            /* console.log('🔍 DEBUG - IDs disponibles en dashboard:', dashboardData.requirements.map(r => r.id));
+            console.log('🔍 DEBUG - ID buscado:', window.currentRequirement.id); */
             
             // 🆕 SI NO SE ENCUENTRA, BUSCAR POR ID DEL REQUERIMIENTO ACTIVO DEL DASHBOARD
             const activeRequirementId = localStorage.getItem('activeRequirementId');
             if (activeRequirementId) {
                 const activeIndex = dashboardData.requirements.findIndex(req => req.id === activeRequirementId);
                 if (activeIndex !== -1) {
-                    console.log('🔄 REEMPLAZANDO requerimiento activo del dashboard con datos del JSON importado');
+                    /* console.log('🔄 REEMPLAZANDO requerimiento activo del dashboard con datos del JSON importado'); */
                     // Reemplazar el requerimiento activo del dashboard con los datos del JSON
                     dashboardData.requirements[activeIndex] = {
                         ...dashboardData.requirements[activeIndex], // Mantener estructura del dashboard
@@ -277,16 +322,16 @@ function syncAppToDashboard() {
         const requirement = dashboardData.requirements[requirementIndex];
         
         // Sincronizar información básica
-        console.log('🔄 ANTES de sincronizar - Dashboard:', {
+        /* console.log('🔄 ANTES de sincronizar - Dashboard:', {
             name: requirement.name,
             number: requirement.number,
             tester: requirement.tester
-        });
-        console.log('🔄 ANTES de sincronizar - App:', {
+        }); */
+        /* console.log('🔄 ANTES de sincronizar - App:', {
             name: window.currentRequirement.info.name,
             number: window.currentRequirement.info.number,
             tester: window.currentRequirement.info.tester
-        });
+        }); */
         
         requirement.name = window.currentRequirement.info.name;
         requirement.number = window.currentRequirement.info.number;
@@ -295,17 +340,17 @@ function syncAppToDashboard() {
         requirement.startDate = window.currentRequirement.info.startDate;
         requirement.updatedAt = new Date().toISOString();
         
-        console.log('🔄 DESPUÉS de sincronizar - Dashboard:', {
+        /* console.log('🔄 DESPUÉS de sincronizar - Dashboard:', {
             name: requirement.name,
             number: requirement.number,
             tester: requirement.tester
-        });
+        }); */
         
         // Sincronizar casos y escenarios
         requirement.cases = window.currentRequirement.cases || [];
         
-        console.log('📊 Sincronizando casos al dashboard:', requirement.cases.length);
-        console.log('📊 Casos en currentRequirement antes de sincronizar:', window.currentRequirement.cases?.length || 0);
+        /* console.log('📊 Sincronizando casos al dashboard:', requirement.cases.length);
+        console.log('📊 Casos en currentRequirement antes de sincronizar:', window.currentRequirement.cases?.length || 0); */
         
         // Guardar logs persistentes
         const debugLogs = JSON.parse(localStorage.getItem('debugLogs') || '[]');
@@ -321,8 +366,8 @@ function syncAppToDashboard() {
         });
         
         if (requirement.cases.length > 0) {
-            console.log('📊 Primer caso:', requirement.cases[0].name);
-            console.log('📊 Escenarios del primer caso:', requirement.cases[0].scenarios?.length || 0);
+            /* console.log('📊 Primer caso:', requirement.cases[0].name);
+            console.log('📊 Escenarios del primer caso:', requirement.cases[0].scenarios?.length || 0); */
             
             debugLogs.push({
                 timestamp: new Date().toISOString(),
@@ -342,18 +387,18 @@ function syncAppToDashboard() {
         requirement.stats = calculateRealStats(window.currentRequirement);
         
         // DEBUG CRÍTICO: Verificar casos antes de guardar en dashboard
-        console.log('🔍 DEBUG syncAppToDashboard - Casos antes de guardar:', requirement.cases?.length || 0);
+        /* console.log('🔍 DEBUG syncAppToDashboard - Casos antes de guardar:', requirement.cases?.length || 0);
         console.log('🔍 DEBUG syncAppToDashboard - Primer caso:', requirement.cases?.[0]);
         console.log('🔍 DEBUG syncAppToDashboard - Escenarios del primer caso:', requirement.cases?.[0]?.scenarios?.length || 0);
         
         console.log('📊 Estadísticas calculadas:', requirement.stats);
         console.log('📊 Progreso calculado:', Math.round((requirement.stats.completedScenarios / requirement.stats.totalScenarios) * 100) || 0, '%');
-        console.log('📊 Casos en el requerimiento:', window.currentRequirement.cases?.length || 0);
+        console.log('📊 Casos en el requerimiento:', window.currentRequirement.cases?.length || 0); */
         if (window.currentRequirement.cases && window.currentRequirement.cases.length > 0) {
-            console.log('📊 Primer caso:', window.currentRequirement.cases[0].title);
-            console.log('📊 Escenarios del primer caso:', window.currentRequirement.cases[0].scenarios?.length || 0);
+            /* console.log('📊 Primer caso:', window.currentRequirement.cases[0].title);
+            console.log('📊 Escenarios del primer caso:', window.currentRequirement.cases[0].scenarios?.length || 0); */
             if (window.currentRequirement.cases[0].scenarios && window.currentRequirement.cases[0].scenarios.length > 0) {
-                console.log('📊 Primer escenario:', window.currentRequirement.cases[0].scenarios[0]);
+                /* console.log('📊 Primer escenario:', window.currentRequirement.cases[0].scenarios[0]); */
             }
         }
         
@@ -362,7 +407,7 @@ function syncAppToDashboard() {
         
         // CRÍTICO: Forzar actualización de estadísticas en el dashboard
         if (typeof window.updateRequirementStats === 'function') {
-            console.log('🔄 Forzando actualización de estadísticas en dashboard...');
+            /* console.log('🔄 Forzando actualización de estadísticas en dashboard...'); */
             window.updateRequirementStats(requirement.id);
         }
         
@@ -540,23 +585,23 @@ function setupAutoSync() {
         }
     });
     
-    console.log('✅ Sincronización automática configurada');
+    // console.log('✅ Sincronización automática configurada');
 }
 
 /**
  * Sincroniza cuando se crea un nuevo caso
  */
 function syncOnCaseCreated(caseData) {
-    console.log('🔄 Sincronizando nuevo caso...');
+    /* console.log('🔄 Sincronizando nuevo caso...');
     console.log('🔍 DEBUG syncOnCaseCreated - caseData:', caseData);
-    console.log('🔍 DEBUG syncOnCaseCreated - currentRequirement:', window.currentRequirement);
+    console.log('🔍 DEBUG syncOnCaseCreated - currentRequirement:', window.currentRequirement); */
     
     setTimeout(() => {
-        console.log('🔄 Ejecutando syncAppToDashboard después de crear caso...');
+        /* console.log('🔄 Ejecutando syncAppToDashboard después de crear caso...'); */
         syncAppToDashboard();
         
         // 🆕 FORZAR ACTUALIZACIÓN DEL DASHBOARD
-        console.log('🔄 Marcando dashboard para actualización después de crear caso...');
+        /* console.log('🔄 Marcando dashboard para actualización después de crear caso...'); */
         localStorage.setItem('forceDashboardUpdate', new Date().toISOString());
     }, 1000);
 }
@@ -565,16 +610,16 @@ function syncOnCaseCreated(caseData) {
  * Sincroniza cuando se modifica un escenario
  */
 function syncOnScenarioModified(scenarioData) {
-    console.log('🔄 Sincronizando escenario modificado...');
+    /* console.log('🔄 Sincronizando escenario modificado...');
     console.log('🔍 DEBUG syncOnScenarioModified - scenarioData:', scenarioData);
-    console.log('🔍 DEBUG syncOnScenarioModified - currentRequirement:', window.currentRequirement);
+    console.log('🔍 DEBUG syncOnScenarioModified - currentRequirement:', window.currentRequirement); */
     
     setTimeout(() => {
-        console.log('🔄 Ejecutando syncAppToDashboard después de modificar escenario...');
+        /* console.log('🔄 Ejecutando syncAppToDashboard después de modificar escenario...'); */
         syncAppToDashboard();
         
         // 🆕 FORZAR ACTUALIZACIÓN DEL DASHBOARD
-        console.log('🔄 Marcando dashboard para actualización después de modificar escenario...');
+        /* console.log('🔄 Marcando dashboard para actualización después de modificar escenario...'); */
         localStorage.setItem('forceDashboardUpdate', new Date().toISOString());
     }, 1000);
 }
@@ -587,17 +632,17 @@ function syncOnScenarioModified(scenarioData) {
  * Función de debug para verificar el estado de los datos
  */
 window.debugSyncState = function() {
-    console.log('🔍 === ESTADO DE SINCRONIZACIÓN ===');
+    /* console.log('🔍 === ESTADO DE SINCRONIZACIÓN ==='); */
     
     // Estado de la app
-    console.log('📱 APP:');
-    console.log('  - currentRequirement:', window.currentRequirement ? 'Existe' : 'No existe');
+    /* console.log('📱 APP:');
+    console.log('  - currentRequirement:', window.currentRequirement ? 'Existe' : 'No existe'); */
     if (window.currentRequirement) {
-        console.log('  - ID:', window.currentRequirement.id);
-        console.log('  - Casos:', window.currentRequirement.cases?.length || 0);
+        /* console.log('  - ID:', window.currentRequirement.id);
+        console.log('  - Casos:', window.currentRequirement.cases?.length || 0); */
         if (window.currentRequirement.cases?.length > 0) {
-            console.log('  - Primer caso:', window.currentRequirement.cases[0].name);
-            console.log('  - Escenarios del primer caso:', window.currentRequirement.cases[0].scenarios?.length || 0);
+            /* console.log('  - Primer caso:', window.currentRequirement.cases[0].name);
+            console.log('  - Escenarios del primer caso:', window.currentRequirement.cases[0].scenarios?.length || 0); */
         }
     }
     
@@ -614,11 +659,11 @@ window.debugSyncState = function() {
                     console.log('  - Primer caso en dashboard:', dashboardReq.cases[0].name);
                 }
             } else {
-                console.log('  - Requerimiento no encontrado en dashboard');
+                /* console.log('  - Requerimiento no encontrado en dashboard'); */
             }
         }
     } else {
-        console.log('  - No hay datos del dashboard');
+        /* console.log('  - No hay datos del dashboard'); */
     }
     
     // Estado del localStorage
@@ -649,17 +694,17 @@ window.debugLegacyMigration = function() {
     const legacyRequirementInfo = localStorage.getItem('requirementInfo');
     const legacyInputVariableNames = localStorage.getItem('inputVariableNames');
     
-    console.log('  - testCases:', legacyTestCases ? 'Existe' : 'No existe');
+    /* console.log('  - testCases:', legacyTestCases ? 'Existe' : 'No existe');
     console.log('  - requirementInfo:', legacyRequirementInfo ? 'Existe' : 'No existe');
-    console.log('  - inputVariableNames:', legacyInputVariableNames ? 'Existe' : 'No existe');
+    console.log('  - inputVariableNames:', legacyInputVariableNames ? 'Existe' : 'No existe'); */
     
     // Verificar requerimiento actual
     console.log('📱 REQUERIMIENTO ACTUAL:');
     if (currentRequirement) {
-        console.log('  - ID:', currentRequirement.id);
+        /* console.log('  - ID:', currentRequirement.id);
         console.log('  - Nombre:', currentRequirement.info?.name || 'Sin nombre');
         console.log('  - Casos:', currentRequirement.cases?.length || 0);
-        console.log('  - Viene del dashboard:', currentRequirement._fromDashboard ? 'Sí' : 'No');
+        console.log('  - Viene del dashboard:', currentRequirement._fromDashboard ? 'Sí' : 'No'); */
     } else {
         console.log('  - No hay requerimiento activo');
     }
@@ -674,11 +719,11 @@ window.debugScenarios = function() {
     console.log('🔍 === DEBUG ESCENARIOS ===');
     
     // Verificar testCases globales
-    console.log('📱 TESTCASES GLOBALES:');
-    console.log('  - Cantidad:', testCases ? testCases.length : 'No definido');
+    /* console.log('📱 TESTCASES GLOBALES:');
+    console.log('  - Cantidad:', testCases ? testCases.length : 'No definido'); */
     if (testCases && testCases.length > 0) {
-        console.log('  - Primer escenario:', testCases[0].scenarioNumber || 'Sin número');
-        console.log('  - Estados:', testCases.map(tc => tc.status || 'Sin estado'));
+        /* console.log('  - Primer escenario:', testCases[0].scenarioNumber || 'Sin número');
+        console.log('  - Estados:', testCases.map(tc => tc.status || 'Sin estado')); */
     }
     
     // Verificar caso actual
@@ -686,12 +731,12 @@ window.debugScenarios = function() {
     if (currentRequirement && currentCaseId) {
         const currentCase = currentRequirement.cases.find(c => c.id === currentCaseId);
         if (currentCase) {
-            console.log('  - ID:', currentCase.id);
+            /* console.log('  - ID:', currentCase.id);
             console.log('  - Nombre:', currentCase.title || 'Sin título');
-            console.log('  - Escenarios:', currentCase.scenarios ? currentCase.scenarios.length : 'No definido');
+            console.log('  - Escenarios:', currentCase.scenarios ? currentCase.scenarios.length : 'No definido'); */
             if (currentCase.scenarios && currentCase.scenarios.length > 0) {
-                console.log('  - Primer escenario:', currentCase.scenarios[0].scenarioNumber || 'Sin número');
-                console.log('  - Estados:', currentCase.scenarios.map(s => s.status || 'Sin estado'));
+                /* console.log('  - Primer escenario:', currentCase.scenarios[0].scenarioNumber || 'Sin número');
+                console.log('  - Estados:', currentCase.scenarios.map(s => s.status || 'Sin estado')); */
             }
         } else {
             console.log('  - Caso no encontrado');

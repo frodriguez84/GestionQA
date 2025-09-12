@@ -7,7 +7,7 @@
     <title>Casos de Prueba</title>
     <link rel="manifest" href="manifest.json">
     <!-- ✅ SOLO UN ARCHIVO CSS UNIFICADO -->
-    <link rel="stylesheet" href="css/finalStyles.css?v=20250111b">
+    <link rel="stylesheet" href="css/finalStyles.css?v=20250111d">
 </head>
 
 <body>
@@ -244,6 +244,23 @@
                 <div class="timer-controls">
                     <button class="btn btn-warning btn-small" onclick="pauseTimer()" id="pauseBtn">⏸️ Pausar</button>
                     <button class="btn btn-danger btn-small" onclick="stopRowTimer()">⏹️ Finalizar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Barra de timer de bugfixing -->
+        <div id="bugfixingBar" class="bugfixing-active-bar" style="display: none;">
+            <div class="bugfixing-bar-content">
+                <div class="bugfixing-info">
+                    <span class="bugfixing-icon">🐛</span>
+                    <div class="bugfixing-details">
+                        <strong id="bugfixingScenario">Escenario --</strong>
+                        <span id="bugfixingDescription">--</span>
+                    </div>
+                    <div class="bugfixing-display" id="bugfixingDisplay">0h 0m</div>
+                </div>
+                <div class="bugfixing-controls">
+                    <button class="btn btn-danger btn-small" onclick="stopBugfixingTimer(activeBugfixingTimerId)">⏹️ Finalizar</button>
                 </div>
             </div>
         </div>
@@ -524,16 +541,22 @@
 
     
 
+    <!-- Librería de compresión -->
+    <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+    
+    <!-- Funciones de compresión -->
+    <script src="js/compression-utils.js?v=20250111b"></script>
+    
     <!-- Scripts principales - ORDEN CORRECTO PARA MULTICASO -->
-    <script src="js/core.js?v=20250111b"></script>
-    <script src="js/multicase-core.js?v=20250110b"></script>
-    <script src="js/legacy-adapter.js?v=20250110a"></script>
-    <script src="js/sync-manager.js?v=20250111b"></script>
-    <script src="js/multicase-ui.js?v=20250111b"></script>
+    <script src="js/core.js?v=20250111j"></script>
+    <script src="js/multicase-core.js?v=20250111h"></script>
+    <script src="js/legacy-adapter.js?v=20250111b"></script>
+    <script src="js/sync-manager.js?v=20250111o"></script>
+    <script src="js/multicase-ui.js?v=20250111e"></script>
     <script src="js/ui.js?v=20250111e"></script>
-    <script src="js/cases.js?v=20250111e"></script>
-    <script src="js/timers.js?v=20250110a"></script>
-    <script src="js/bulk.js?v=20250111d"></script>
+    <script src="js/cases.js?v=20250111o"></script>
+    <script src="js/timers.js?v=20250111t"></script>
+    <script src="js/bulk.js?v=20250111e"></script>
     <script src="js/dragdrop.js?v=20250111c"></script>
     <script src="js/exportImport.js?v=20250111e"></script>
     <script src="js/reports.js?v=20250110a"></script>
@@ -572,7 +595,7 @@
 
         // Función para finalizar el loader
         function finishLoader() {
-            console.log('🎯 Finalizando loader anti-flash...');
+            // console.log('🎯 Finalizando loader anti-flash...');
 
             // Completar progreso
             updateLoaderProgress(100, 'Sistema listo ✓');
@@ -636,7 +659,7 @@
                 // Forzar actualización de UI multicaso después de un breve delay
                 setTimeout(() => {
                     if (typeof updateMulticaseUI === 'function') {
-                        console.log('🎨 Ejecutando updateMulticaseUI...');
+                        // console.log('🎨 Ejecutando updateMulticaseUI...');
                         updateMulticaseUI();
                         updateLoaderProgress(95, 'Actualizando interfaz...');
                     }
@@ -656,7 +679,7 @@
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
                     .then(registration => {
-                        console.log('✅ PWA Auto-Update: Service Worker registrado');
+                        // console.log('✅ PWA Auto-Update: Service Worker registrado');
 
                         navigator.serviceWorker.addEventListener('message', event => {
                             if (event.data?.type === 'UPDATE_AVAILABLE') {

@@ -39,8 +39,8 @@ function exportProjectJSONv3() {
         const cases = JSON.parse(JSON.stringify(req.cases || []));
         
         // DEBUG: Verificar qué se está exportando
-        console.log('🔍 DEBUG exportProjectJSONv3 - req.info:', req.info);
-        console.log('🔍 DEBUG exportProjectJSONv3 - requirement exportado:', requirement);
+        /* console.log('🔍 DEBUG exportProjectJSONv3 - req.info:', req.info);
+        console.log('🔍 DEBUG exportProjectJSONv3 - requirement exportado:', requirement); */
 
         const data = {
             version: "3.0",
@@ -181,15 +181,15 @@ function exportProjectJSONv3() {
         console.log('🧭 v3-flat detectado. exportedAt:', exportedAt);
         
         // DEBUG: Verificar qué se está importando
-        console.log('🔍 DEBUG importFromV3Flat - requirement importado:', requirement);
-        console.log('🔍 DEBUG importFromV3Flat - cases importados:', cases.length);
+        /* console.log('🔍 DEBUG importFromV3Flat - requirement importado:', requirement);
+        console.log('🔍 DEBUG importFromV3Flat - cases importados:', cases.length); */
 
         const activeId = obj.activeCaseId && cases.some(c => c.id === obj.activeCaseId)
             ? obj.activeCaseId
             : (cases[0]?.id || null);
 
         const reqObj = { info: { ...requirement }, cases };
-        console.log('🔍 DEBUG importFromV3Flat - reqObj creado:', reqObj);
+        /* console.log('🔍 DEBUG importFromV3Flat - reqObj creado:', reqObj); */
         
         setReqCase(reqObj, activeId);
     }
@@ -198,7 +198,7 @@ function exportProjectJSONv3() {
         const cases = (obj.project.cases || []).map(normalizeCase);
 
         const exportedAt = obj.project.exportedAt || obj.project.exportDate || obj.exportedAt || obj.exportDate || new Date().toISOString();
-        console.log('🧭 v3-wrapped detectado. exportedAt:', exportedAt);
+        /* console.log('🧭 v3-wrapped detectado. exportedAt:', exportedAt); */
 
         const activeId = obj.activeCaseId && cases.some(c => c.id === obj.activeCaseId)
             ? obj.activeCaseId

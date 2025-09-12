@@ -2,6 +2,32 @@
 // MULTICASE-UI.JS - Interfaz de Usuario Multicaso
 // ===============================================
 
+/**
+ * Función temporal para formatear fechas (hasta que cases.js se cargue)
+ */
+function formatDateForDisplay(dateString) {
+    if (!dateString || dateString.trim() === '') return '';
+    
+    try {
+        // Si ya está en formato dd-mm-aaaa, devolverlo tal como está
+        if (dateString.includes('/') || (dateString.includes('-') && dateString.split('-')[0].length === 2)) {
+            return dateString;
+        }
+        
+        // Convertir de yyyy-mm-dd a dd-mm-aaaa
+        if (dateString.includes('-') && dateString.length === 10) {
+            const parts = dateString.split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1]}-${parts[0]}`;
+            }
+        }
+        
+        return dateString;
+    } catch (e) {
+        return dateString;
+    }
+}
+
 // ===============================================
 // FUNCIONES DE INTEGRACIÓN CON DASHBOARD
 // ===============================================
@@ -52,9 +78,9 @@ function goToDashboard() {
         return;
     }
     
-    console.log('🔄 Sincronizando datos antes de ir al dashboard...');
+    /* console.log('🔄 Sincronizando datos antes de ir al dashboard...');
     console.log('📊 Casos actuales:', currentRequirement.cases?.length || 0);
-    console.log('📊 currentRequirement completo:', currentRequirement);
+    console.log('📊 currentRequirement completo:', currentRequirement); */
     
     // Guardar información crítica en localStorage
     debugLogs.push({
@@ -73,7 +99,7 @@ function goToDashboard() {
     // CRÍTICO: Sincronizar window.currentRequirement con currentRequirement
     if (typeof window !== 'undefined') {
         window.currentRequirement = currentRequirement;
-        console.log('🔄 Sincronizando window.currentRequirement con currentRequirement');
+        /* console.log('🔄 Sincronizando window.currentRequirement con currentRequirement'); */
         debugLogs.push({
             timestamp: new Date().toISOString(),
             source: 'APP',
@@ -87,8 +113,8 @@ function goToDashboard() {
     }
     
     if (currentRequirement.cases && currentRequirement.cases.length > 0) {
-        console.log('📊 Primer caso:', currentRequirement.cases[0].name);
-        console.log('📊 Escenarios del primer caso:', currentRequirement.cases[0].scenarios?.length || 0);
+        /* console.log('📊 Primer caso:', currentRequirement.cases[0].name);
+        console.log('📊 Escenarios del primer caso:', currentRequirement.cases[0].scenarios?.length || 0); */
         
         debugLogs.push({
             timestamp: new Date().toISOString(),
@@ -112,7 +138,7 @@ function goToDashboard() {
     // Sincronizar datos antes de ir al dashboard
     if (typeof syncAppToDashboard === 'function') {
         const syncResult = syncAppToDashboard();
-        console.log('📊 Resultado de sincronización:', syncResult ? 'Éxito' : 'Falló');
+        /* console.log('📊 Resultado de sincronización:', syncResult ? 'Éxito' : 'Falló'); */
     }
     
     // Pequeño delay para asegurar que la sincronización se complete
@@ -130,12 +156,12 @@ function goToDashboard() {
  * Crea y actualiza el header principal del requerimiento (MEJORADO)
  */
 function createRequirementHeader() {
-    console.log('🎨 Creando header del requerimiento...');
-    console.log('📊 Estado actual:', {
+    /* console.log('🎨 Creando header del requerimiento...'); */
+    /* console.log('📊 Estado actual:', {
         hasActiveRequirement: hasActiveRequirement(),
         currentRequirement: currentRequirement ? 'Existe' : 'No existe',
         multicaseMode: multicaseMode
-    });
+    }); */
     
     if (!hasActiveRequirement()) {
         console.log('⚠️ No hay requerimiento activo, ocultando header');
@@ -147,7 +173,7 @@ function createRequirementHeader() {
         return;
     }
     
-    console.log('✅ Creando header para requerimiento:', currentRequirement.info.name);
+    /* console.log('✅ Creando header para requerimiento:', currentRequirement.info.name); */
 
     let headerContainer = document.getElementById('requirementHeader');
 
@@ -408,6 +434,11 @@ function switchToCaseUI(caseId) {
         // Actualizar tabla de escenarios
         if (typeof renderTestCases === 'function') {
             renderTestCases();
+        }
+        
+        // 🆕 ACTUALIZAR VISIBILIDAD DE TIMER BARS
+        if (typeof updateTimerBarsVisibility === 'function') {
+            updateTimerBarsVisibility();
         }
 
     }
@@ -1112,7 +1143,7 @@ function loadRequirementFromFile(event) {
  */
 function loadRequirementData(data) {
     try {
-        console.log('🔄 Cargando datos del requerimiento:', data.requirement.info.name);
+        /* console.log('🔄 Cargando datos del requerimiento:', data.requirement.info.name); */
         
         // 1. Actualizar el requerimiento actual en memoria
         if (currentRequirement) {
@@ -1136,7 +1167,7 @@ function loadRequirementData(data) {
         renderCaseTabs();
         renderCurrentCase();
         
-        console.log('✅ Requerimiento cargado y sincronizado exitosamente');
+        /* console.log('✅ Requerimiento cargado y sincronizado exitosamente'); */
         
     } catch (error) {
         console.error('❌ Error cargando datos del requerimiento:', error);

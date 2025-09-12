@@ -68,42 +68,130 @@ let scrollContainer = null;
 // FUNCIONES DE PERSISTENCIA
 // ===============================================
 
+/**
+ * Guarda datos con compresión automática
+ */
 function saveToStorage() {
     try {
-        localStorage.setItem('testCases', JSON.stringify(testCases));
-        localStorage.setItem('inputVariableNames', JSON.stringify(inputVariableNames));
-        localStorage.setItem('requirementInfo', JSON.stringify(requirementInfo));
-        console.log('✅ Datos guardados en localStorage');
+        // Comprimir datos antes de guardar
+        const compressedTestCases = compressData(testCases);
+        const compressedInputVariables = compressData(inputVariableNames);
+        const compressedRequirementInfo = compressData(requirementInfo);
+        
+        localStorage.setItem('testCases', compressedTestCases);
+        localStorage.setItem('inputVariableNames', compressedInputVariables);
+        localStorage.setItem('requirementInfo', compressedRequirementInfo);
+        // console.log('✅ Datos guardados en localStorage (comprimidos)');
     } catch (e) {
         console.error('❌ Error guardando en localStorage:', e);
-        alert('Error al guardar datos. Espacio de almacenamiento lleno.');
+        
+        // 🚨 SOLUCIÓN DE EMERGENCIA: Intentar limpiar y guardar de nuevo
+        console.log('🚨 Intentando solución de emergencia...');
+        
+        // 1. Diagnóstico
+        const diagnosis = diagnoseLocalStorage();
+        console.log(`📊 Espacio usado: ${(diagnosis.totalSize / 1024 / 1024).toFixed(2)} MB`);
+        
+        // 2. Optimización de datos (eliminar duplicación)
+        const optimization = optimizeLocalStorageData();
+        console.log(`🧹 Optimización: ${(optimization.spaceSaved / 1024).toFixed(2)} KB liberados`);
+        
+        // 3. Limpieza automática
+        const cleanup = cleanupLocalStorage();
+        
+        // 4. Intentar guardar de nuevo (con compresión)
+        try {
+            const compressedTestCases = compressData(testCases);
+            const compressedInputVariables = compressData(inputVariableNames);
+            const compressedRequirementInfo = compressData(requirementInfo);
+            
+            localStorage.setItem('testCases', compressedTestCases);
+            localStorage.setItem('inputVariableNames', compressedInputVariables);
+            localStorage.setItem('requirementInfo', compressedRequirementInfo);
+            // console.log('✅ Datos guardados después de limpieza (comprimidos)');
+            
+            // Mostrar mensaje de éxito
+            const totalSpaceSaved = (optimization.spaceSaved + cleanup.cleanedSize) / 1024;
+            showWarning(
+                `¡Problema resuelto! Se liberaron ${totalSpaceSaved.toFixed(2)} KB de espacio automáticamente.`,
+                'Espacio liberado'
+            );
+            
+        } catch (e2) {
+            console.error('❌ Error persistente después de limpieza:', e2);
+            
+            // Si aún falla, ofrecer opciones al usuario
+            const userChoice = confirm(
+                `🚨 LOCALSTORAGE LLENO\n\n` +
+                `Espacio usado: ${(diagnosis.totalSize / 1024 / 1024).toFixed(2)} MB\n` +
+                `Espacio liberado: ${(cleanup.cleanedSize / 1024).toFixed(2)} KB\n\n` +
+                `¿Deseas:\n` +
+                `• SÍ: Limpiar datos antiguos y continuar\n` +
+                `• NO: Exportar proyecto y limpiar todo`
+            );
+            
+            if (userChoice) {
+                // Limpieza más agresiva
+                aggressiveCleanup();
+                try {
+                    const compressedTestCases = compressData(testCases);
+                    const compressedInputVariables = compressData(inputVariableNames);
+                    const compressedRequirementInfo = compressData(requirementInfo);
+                    
+                    localStorage.setItem('testCases', compressedTestCases);
+                    localStorage.setItem('inputVariableNames', compressedInputVariables);
+                    localStorage.setItem('requirementInfo', compressedRequirementInfo);
+                    // console.log('✅ Datos guardados después de limpieza agresiva (comprimidos)');
+                    showSuccess('¡Problema resuelto! Se liberó espacio adicional.', 'Limpieza exitosa');
+                } catch (e3) {
+                    console.error('❌ Error final:', e3);
+                    alert('❌ Error crítico: No se pudo guardar. Por favor, exporta tu proyecto y recarga la página.');
+                }
+            } else {
+                // Ofrecer exportar proyecto
+                if (confirm('¿Exportar proyecto actual antes de limpiar todo?')) {
+                    exportProjectJSONv3();
+                }
+                localStorage.clear();
+                alert('🧹 localStorage limpiado completamente. Recarga la página.');
+                window.location.reload();
+            }
+        }
     }
 }
 
 function loadFromStorage() {
     try {
-        // Cargar casos de prueba
+        // Cargar casos de prueba (con descompresión automática)
         const savedCases = localStorage.getItem('testCases');
         if (savedCases) {
-            testCases = JSON.parse(savedCases);
+            testCases = decompressData(savedCases);
         }
 
-        // Cargar variables de entrada
+        // Cargar variables de entrada (con descompresión automática)
         const savedVars = localStorage.getItem('inputVariableNames');
         if (savedVars) {
-            inputVariableNames = JSON.parse(savedVars);
+            inputVariableNames = decompressData(savedVars);
         }
 
-        // Cargar información del requerimiento
+        // Cargar información del requerimiento (con descompresión automática)
         const savedReqInfo = localStorage.getItem('requirementInfo');
         if (savedReqInfo) {
-            requirementInfo = JSON.parse(savedReqInfo);
+            requirementInfo = decompressData(savedReqInfo);
         }
 
         // Asegurar que filteredCases esté inicializado
         filteredCases = [...testCases];
 
-        console.log('✅ Datos cargados desde localStorage');
+        // 🎯 CRÍTICO: Restaurar timers de bugfixing después de cargar datos
+        setTimeout(() => {
+            if (typeof restoreBugfixingTimers === 'function') {
+                restoreBugfixingTimers();
+                console.log('✅ Timers de bugfixing restaurados después de cargar desde localStorage (core)');
+            }
+        }, 100);
+
+        // console.log('✅ Datos cargados desde localStorage');
         // console.log(`📊 ${testCases.length} casos cargados`);
 
     } catch (e) {
@@ -161,13 +249,13 @@ function loadRequirementFromDashboard(requirementId) {
         
         // CRÍTICO: Cargar el caso activo para que los escenarios estén disponibles en testCases
         if (multicaseRequirement.cases.length > 0 && multicaseRequirement.cases[0].id) {
-            console.log('🔄 Cargando caso activo para disponibilizar escenarios...');
+            // console.log('🔄 Cargando caso activo para disponibilizar escenarios...');
             if (typeof switchToCase === 'function') {
                 const success = switchToCase(multicaseRequirement.cases[0].id);
-                console.log('📊 Resultado de switchToCase:', success ? 'Éxito' : 'Falló');
+                // console.log('📊 Resultado de switchToCase:', success ? 'Éxito' : 'Falló');
             }
         } else {
-            console.log('ℹ️ No hay casos en el requerimiento, limpiando variables globales...');
+            // console.log('ℹ️ No hay casos en el requerimiento, limpiando variables globales...');
             // Solo limpiar si no hay casos
             if (typeof window !== 'undefined') {
                 window.testCases = [];
@@ -274,61 +362,61 @@ function syncWithDashboard() {
 // ===============================================
 
 function initializeApp() {
-    console.log('🚀 Inicializando aplicación...');
+    // console.log('🚀 Inicializando aplicación...');
     
     // 🎯 PASO 1: Verificar si hay un requerimiento activo del dashboard
     const activeRequirementId = localStorage.getItem('activeRequirementId');
-    console.log('🔍 ID de requerimiento activo:', activeRequirementId);
+    // console.log('🔍 ID de requerimiento activo:', activeRequirementId);
     
     if (activeRequirementId) {
-        console.log('📥 Cargando requerimiento desde dashboard...');
+        // console.log('📥 Cargando requerimiento desde dashboard...');
         
         // 🎯 PASO 1: Primero cargar datos existentes de la app
         const loaded = loadMulticaseData();
         
         if (loaded && window.currentRequirement && window.currentRequirement.cases && window.currentRequirement.cases.length > 0) {
-            console.log('✅ Datos existentes en la app, manteniendo datos actuales');
+            // console.log('✅ Datos existentes en la app, manteniendo datos actuales');
             // Si hay datos en la app, mantenerlos y solo sincronizar la información básica
             if (typeof syncDashboardToApp === 'function') {
-                console.log('🔄 Sincronizando solo información básica del dashboard...');
+                // console.log('🔄 Sincronizando solo información básica del dashboard...');
                 syncDashboardToApp(activeRequirementId);
             }
         } else {
-            console.log('📂 No hay datos en la app, cargando desde dashboard...');
+            // console.log('📂 No hay datos en la app, cargando desde dashboard...');
             // Si no hay datos en la app, cargar desde el dashboard
             if (typeof syncDashboardToApp === 'function') {
-                console.log('✅ Usando syncDashboardToApp');
+                // console.log('✅ Usando syncDashboardToApp');
                 syncDashboardToApp(activeRequirementId);
             } else {
-                console.log('⚠️ Usando fallback loadRequirementFromDashboard');
+                // console.log('⚠️ Usando fallback loadRequirementFromDashboard');
                 loadRequirementFromDashboard(activeRequirementId);
             }
         }
         
         // Limpiar el ID activo
         localStorage.removeItem('activeRequirementId');
-        console.log('🧹 ID de requerimiento activo limpiado');
+        // console.log('🧹 ID de requerimiento activo limpiado');
     } else {
-        console.log('📂 No hay requerimiento activo, cargando datos existentes...');
+        // console.log('📂 No hay requerimiento activo, cargando datos existentes...');
         // 🎯 PASO 2: Cargar datos multicaso existentes
         const loaded = loadMulticaseData();
 
         if (!loaded) {
             // Si no hay datos multicaso, crear uno vacío
-            console.log('🆕 Creando nuevo requerimiento multicaso...');
+            // console.log('🆕 Creando nuevo requerimiento multicaso...');
             enableMulticaseMode();
         }
     }
     
-    console.log('📊 Estado después de carga:', {
-        currentRequirement: currentRequirement ? 'Existe' : 'No existe',
-        currentCaseId: currentCaseId,
-        multicaseMode: multicaseMode
-    });
+    // console.log('📊 Estado después de carga:', {
+    //     currentRequirement: currentRequirement ? 'Existe' : 'No existe',
+    //     currentCaseId: currentCaseId,
+    //     multicaseMode: multicaseMode
+    // });
     
     // Verificar si hay requerimiento activo después de la sincronización
     if (activeRequirementId && currentRequirement) {
-        console.log('✅ Requerimiento cargado correctamente desde dashboard');
+        // console.log('✅ Requerimiento cargado correctamente desde dashboard');
     } else if (activeRequirementId && !currentRequirement) {
         console.error('❌ Error: Se intentó cargar requerimiento pero no se estableció');
     }
@@ -377,11 +465,17 @@ function initializeApp() {
         // 🎯 CRÍTICO: Actualizar filtros después de cargar datos
         if (typeof updateFilters === 'function') {
             updateFilters();
-            console.log('✅ Filtros actualizados automáticamente después de inicialización');
+            // console.log('✅ Filtros actualizados automáticamente después de inicialización');
+        }
+        
+        // 🎯 CRÍTICO: Restaurar timers de bugfixing
+        if (typeof restoreBugfixingTimers === 'function') {
+            restoreBugfixingTimers();
+            // console.log('✅ Timers de bugfixing restaurados automáticamente');
         }
     }, 50);
 
-    console.log('✅ Aplicación inicializada en modo multicaso únicamente');
+    // console.log('✅ Aplicación inicializada en modo multicaso únicamente');
 }
 
 // 🎯 FUNCIÓN PARA OCULTAR INTERFAZ ORIGINAL
@@ -407,7 +501,7 @@ function hideOriginalInterface() {
         });
     });
 
-    console.log('✅ Interfaz original ocultada');
+    // console.log('✅ Interfaz original ocultada');
 }
 
 function setupEssentialEventListeners() {
@@ -892,6 +986,202 @@ if (document.readyState === 'loading') {
             alert("❌ Error aplicando datos del JSON");
         }
     }
+
+// ===============================================
+// 🧹 OPTIMIZACIÓN DE DATOS - ELIMINAR DUPLICACIÓN
+// ===============================================
+
+/**
+ * Optimiza y consolida datos en localStorage para reducir duplicación
+ */
+function optimizeLocalStorageData() {
+    console.log('🧹 INICIANDO OPTIMIZACIÓN DE DATOS...');
+    
+    try {
+        // 1. Verificar si hay datos duplicados
+        const multicaseData = localStorage.getItem('multicaseData');
+        const dashboardData = localStorage.getItem('dashboardData');
+        const dashboardRequirements = localStorage.getItem('dashboardRequirements');
+        
+        let spaceSaved = 0;
+        
+        // 2. Eliminar dashboardRequirements si es duplicado de dashboardData
+        if (dashboardData && dashboardRequirements) {
+            try {
+                const dashboardDataParsed = decompressData(dashboardData);
+                const dashboardRequirementsParsed = decompressData(dashboardRequirements);
+                
+                // Si dashboardRequirements es un subconjunto de dashboardData, eliminarlo
+                if (dashboardDataParsed.requirements && 
+                    JSON.stringify(dashboardDataParsed.requirements) === JSON.stringify(dashboardRequirementsParsed)) {
+                    
+                    const size = new Blob([dashboardRequirements]).size;
+                    localStorage.removeItem('dashboardRequirements');
+                    spaceSaved += size;
+                    console.log(`✅ Eliminado dashboardRequirements duplicado: ${(size / 1024).toFixed(2)} KB`);
+                }
+            } catch (e) {
+                console.log('⚠️ No se pudo verificar duplicación de dashboard');
+            }
+        }
+        
+        // 3. Limpiar datos temporales y de respaldo
+        const keysToClean = [
+            'currentRequirement_backup',
+            'testCases_backup',
+            'debugLogs',
+            'tempData',
+            'cache',
+            'sessionData',
+            'oldData',
+            'backup',
+            'logs'
+        ];
+        
+        keysToClean.forEach(key => {
+            if (localStorage.getItem(key)) {
+                const size = new Blob([localStorage.getItem(key)]).size;
+                localStorage.removeItem(key);
+                spaceSaved += size;
+                console.log(`✅ Eliminado ${key}: ${(size / 1024).toFixed(2)} KB`);
+            }
+        });
+        
+        console.log(`🧹 OPTIMIZACIÓN COMPLETADA: ${(spaceSaved / 1024).toFixed(2)} KB liberados`);
+        return { spaceSaved, cleanedItems: keysToClean.length };
+        
+    } catch (error) {
+        console.error('❌ Error en optimización:', error);
+        return { spaceSaved: 0, cleanedItems: 0 };
+    }
+}
+
+// ===============================================
+// 🚨 FUNCIONES DE EMERGENCIA - LOCALSTORAGE LLENO
+// ===============================================
+
+/**
+ * 🚨 DIAGNÓSTICO DE LOCALSTORAGE - SOLUCIÓN DE EMERGENCIA
+ */
+function diagnoseLocalStorage() {
+    console.log('🔍 DIAGNÓSTICO DE LOCALSTORAGE:');
+    console.log('=====================================');
+    
+    let totalSize = 0;
+    const items = [];
+    
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        const size = new Blob([value]).size;
+        
+        totalSize += size;
+        items.push({
+            key: key,
+            size: size,
+            sizeKB: (size / 1024).toFixed(2),
+            preview: value.substring(0, 100) + (value.length > 100 ? '...' : '')
+        });
+    }
+    
+    // Ordenar por tamaño (mayores primero)
+    items.sort((a, b) => b.size - a.size);
+    
+    console.log(`📊 TOTAL: ${(totalSize / 1024 / 1024).toFixed(2)} MB`);
+    console.log(`📊 LÍMITE APROX: ~5-10 MB`);
+    console.log('📋 ITEMS (ordenados por tamaño):');
+    
+    items.forEach((item, index) => {
+        console.log(`${index + 1}. ${item.key}: ${item.sizeKB} KB`);
+        console.log(`   Preview: ${item.preview}`);
+    });
+    
+    return { totalSize, items };
+}
+
+/**
+ * 🧹 LIMPIEZA DE LOCALSTORAGE - SOLUCIÓN DE EMERGENCIA
+ */
+function cleanupLocalStorage() {
+    console.log('🧹 INICIANDO LIMPIEZA DE LOCALSTORAGE...');
+    
+    const diagnosis = diagnoseLocalStorage();
+    
+    // Lista de claves a limpiar (datos temporales, logs, etc.)
+    const keysToClean = [
+        'debugLogs',
+        'tempData',
+        'cache',
+        'sessionData',
+        'oldData',
+        'backup',
+        'logs'
+    ];
+    
+    let cleanedCount = 0;
+    let cleanedSize = 0;
+    
+    keysToClean.forEach(key => {
+        if (localStorage.getItem(key)) {
+            const size = new Blob([localStorage.getItem(key)]).size;
+            localStorage.removeItem(key);
+            cleanedCount++;
+            cleanedSize += size;
+            console.log(`✅ Eliminado: ${key} (${(size / 1024).toFixed(2)} KB)`);
+        }
+    });
+    
+    console.log(`🧹 LIMPIEZA COMPLETADA:`);
+    console.log(`   - Items eliminados: ${cleanedCount}`);
+    console.log(`   - Espacio liberado: ${(cleanedSize / 1024).toFixed(2)} KB`);
+    
+    return { cleanedCount, cleanedSize };
+}
+
+/**
+ * 🧹 LIMPIEZA AGRESIVA DE LOCALSTORAGE
+ */
+function aggressiveCleanup() {
+    console.log('🧹 INICIANDO LIMPIEZA AGRESIVA...');
+    
+    const keysToKeep = [
+        'testCases',
+        'inputVariableNames', 
+        'requirementInfo',
+        'multicaseData',
+        'dashboardRequirements',
+        'dashboardData'
+    ];
+    
+    const allKeys = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        allKeys.push(localStorage.key(i));
+    }
+    
+    let cleanedCount = 0;
+    let cleanedSize = 0;
+    
+    allKeys.forEach(key => {
+        if (!keysToKeep.includes(key)) {
+            const size = new Blob([localStorage.getItem(key)]).size;
+            localStorage.removeItem(key);
+            cleanedCount++;
+            cleanedSize += size;
+            console.log(`🗑️ Eliminado: ${key} (${(size / 1024).toFixed(2)} KB)`);
+        }
+    });
+    
+    console.log(`🧹 LIMPIEZA AGRESIVA COMPLETADA:`);
+    console.log(`   - Items eliminados: ${cleanedCount}`);
+    console.log(`   - Espacio liberado: ${(cleanedSize / 1024).toFixed(2)} KB`);
+    
+    return { cleanedCount, cleanedSize };
+}
+
+// Exponer funciones globalmente para diagnóstico
+window.diagnoseLocalStorage = diagnoseLocalStorage;
+window.cleanupLocalStorage = cleanupLocalStorage;
+window.aggressiveCleanup = aggressiveCleanup;
 
 })();
 
