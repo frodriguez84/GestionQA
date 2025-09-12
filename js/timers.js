@@ -638,7 +638,11 @@ function restoreBugfixingTimers() {
     });
     
     if (restoredCount > 0) {
-        showInfo(`${restoredCount} timers de bugfixing restaurados`, 'Timers restaurados');
+        // Solo mostrar el toast una vez por sesión para evitar spam
+        if (!window.bugfixingTimersRestoredShown) {
+            showInfo(`${restoredCount} timers de bugfixing activos`, 'Timers activos');
+            window.bugfixingTimersRestoredShown = true;
+        }
     }
 }
 

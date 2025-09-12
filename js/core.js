@@ -187,7 +187,7 @@ function loadFromStorage() {
         setTimeout(() => {
             if (typeof restoreBugfixingTimers === 'function') {
                 restoreBugfixingTimers();
-                console.log('✅ Timers de bugfixing restaurados después de cargar desde localStorage (core)');
+                /* console.log('✅ Timers de bugfixing restaurados después de cargar desde localStorage (core)'); */
             }
         }, 100);
 
