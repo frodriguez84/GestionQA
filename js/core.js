@@ -682,13 +682,15 @@ if (document.readyState === 'loading') {
                 const a = document.createElement("a");
                 a.href = url;
                 a.download = `proyecto_multicaso_${new Date().toISOString().split("T")[0]}.json`;
+                // Mostrar mensaje de "Listo para guardar" antes de hacer click
+                showInfo("Archivo JSON listo. Se abrirá el explorador para que elijas dónde guardarlo.", "Listo para guardar");
+                
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
 
                 console.log("✅ Exportación JSON v3 (hotfix) completada");
-                alert("✅ Proyecto exportado en formato JSON v3");
             } catch (e) {
                 console.error("❌ exportProjectJSONv3 hotfix:", e);
                 alert("❌ Error exportando JSON v3");

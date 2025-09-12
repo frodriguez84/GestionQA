@@ -428,10 +428,36 @@ function calculateRealStats(requirement) {
         }
     });
     
-    // Contar casos completados
+    // Contar casos completados (todos los escenarios del caso deben tener su último ciclo OK)
     requirement.cases.forEach(caseObj => {
-        if (caseObj.status === 'completed' || caseObj.status === 'passed') {
-            stats.completedCases++;
+        if (caseObj.scenarios && caseObj.scenarios.length > 0) {
+            // Agrupar escenarios por número de escenario
+            const scenarioGroups = {};
+            caseObj.scenarios.forEach(scenario => {
+                const scenarioNum = scenario.scenarioNumber || scenario.scenario;
+                if (!scenarioGroups[scenarioNum]) {
+                    scenarioGroups[scenarioNum] = [];
+                }
+                scenarioGroups[scenarioNum].push(scenario);
+            });
+            
+            // Verificar si todos los escenarios del caso están completos
+            const allScenariosComplete = Object.values(scenarioGroups).every(scenarioGroup => {
+                // Ordenar por número de ciclo para obtener el último
+                scenarioGroup.sort((a, b) => {
+                    const cycleA = parseInt(a.cycleNumber || a.cycle) || 0;
+                    const cycleB = parseInt(b.cycleNumber || b.cycle) || 0;
+                    return cycleA - cycleB;
+                });
+                
+                // El último ciclo debe estar OK
+                const lastCycle = scenarioGroup[scenarioGroup.length - 1];
+                return lastCycle && lastCycle.status === 'OK';
+            });
+            
+            if (allScenariosComplete) {
+                stats.completedCases++;
+            }
         }
     });
     
@@ -522,8 +548,16 @@ function setupAutoSync() {
  */
 function syncOnCaseCreated(caseData) {
     console.log('🔄 Sincronizando nuevo caso...');
+    console.log('🔍 DEBUG syncOnCaseCreated - caseData:', caseData);
+    console.log('🔍 DEBUG syncOnCaseCreated - currentRequirement:', window.currentRequirement);
+    
     setTimeout(() => {
+        console.log('🔄 Ejecutando syncAppToDashboard después de crear caso...');
         syncAppToDashboard();
+        
+        // 🆕 FORZAR ACTUALIZACIÓN DEL DASHBOARD
+        console.log('🔄 Marcando dashboard para actualización después de crear caso...');
+        localStorage.setItem('forceDashboardUpdate', new Date().toISOString());
     }, 1000);
 }
 
@@ -532,8 +566,16 @@ function syncOnCaseCreated(caseData) {
  */
 function syncOnScenarioModified(scenarioData) {
     console.log('🔄 Sincronizando escenario modificado...');
+    console.log('🔍 DEBUG syncOnScenarioModified - scenarioData:', scenarioData);
+    console.log('🔍 DEBUG syncOnScenarioModified - currentRequirement:', window.currentRequirement);
+    
     setTimeout(() => {
+        console.log('🔄 Ejecutando syncAppToDashboard después de modificar escenario...');
         syncAppToDashboard();
+        
+        // 🆕 FORZAR ACTUALIZACIÓN DEL DASHBOARD
+        console.log('🔄 Marcando dashboard para actualización después de modificar escenario...');
+        localStorage.setItem('forceDashboardUpdate', new Date().toISOString());
     }, 1000);
 }
 

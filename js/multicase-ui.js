@@ -360,7 +360,7 @@ function createCaseNavigation() {
                     <span class="case-separator">•</span>
                     <span class="case-stat case-success">${stats.successRate || 0}%</span>
                 </div>
-                <div class="case-tab-objective">${caseObj.title || 'Sin objetivo definido'}</div>
+                <div class="case-tab-objective">${caseObj.objective || 'Sin objetivo definido'}</div>
             </div>
         `;
     }).join('');
@@ -436,37 +436,108 @@ function deleteCaseUI(caseId, event) {
         return;
     }
 
-    const ok = confirm(`¿Eliminar el caso "${caseObj.title || 'Sin título'}" y sus escenarios?`);
-    if (!ok) return;
+    // Mostrar toast de confirmación SIN auto-ocultado
+    const confirmationToast = toastSystem.show(
+        `¿Eliminar el caso "${caseObj.title || 'Sin título'}" y sus escenarios? Esta acción no se puede deshacer.`,
+        'warning',
+        'Confirmar eliminación',
+        0  // 0 = NO auto-ocultado
+    );
+    
+    // Crear botones de confirmación
+    setTimeout(() => {
+        const toasts = document.querySelectorAll('.toast.show');
+        const toast = toasts[toasts.length - 1];
+        
+        if (toast) {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = `
+                display: flex;
+                gap: 8px;
+                margin-top: 12px;
+                justify-content: flex-end;
+            `;
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.style.cssText = `
+                background: #6c757d;
+                color: white;
+                border: none;
+                padding: 6px 16px;
+                border-radius: 6px;
+                font-size: 13px;
+                cursor: pointer;
+                font-weight: 500;
+            `;
+            
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = 'Sí, eliminar';
+            confirmBtn.style.cssText = `
+                background: #f44336;
+                color: white;
+                border: none;
+                padding: 6px 16px;
+                border-radius: 6px;
+                font-size: 13px;
+                cursor: pointer;
+                font-weight: 500;
+            `;
+            
+            confirmBtn.onclick = () => {
+                toastSystem.hide(toast);
+                
+                const deletingActive = (typeof currentCaseId !== 'undefined' ? currentCaseId : window.currentCaseId) === caseId;
 
-    const deletingActive = (typeof currentCaseId !== 'undefined' ? currentCaseId : window.currentCaseId) === caseId;
+                // Quitar el caso
+                req.cases = req.cases.filter(c => c.id !== caseId);
 
-    // Quitar el caso
-    req.cases = req.cases.filter(c => c.id !== caseId);
+                // Elegir nuevo activo si borramos el actual
+                if (deletingActive) {
+                    const newActiveId = req.cases[0]?.id || null;
+                    if (typeof currentCaseId !== 'undefined') {
+                        currentCaseId = newActiveId;
+                    }
+                    window.currentCaseId = newActiveId;
 
-    // Elegir nuevo activo si borramos el actual
-    if (deletingActive) {
-        const newActiveId = req.cases[0]?.id || null;
-        if (typeof currentCaseId !== 'undefined') {
-            currentCaseId = newActiveId;
+                    // Hidratar proxies cambiando de caso (si hay alguno)
+                    if (newActiveId && typeof switchToCase === 'function') {
+                        switchToCase(newActiveId);
+                    }
+                } else {
+                    // Si no borramos el activo, garantizamos que los proxies sigan OK
+                    if (typeof ensureTestCasesProxy === 'function') ensureTestCasesProxy();
+                }
+
+                // Persistir y refrescar UI/Stats/Header
+                if (typeof saveMulticaseData === 'function') saveMulticaseData();
+                if (typeof updateMulticaseUI === 'function') updateMulticaseUI();
+                if (typeof renderTestCases === 'function') renderTestCases();
+                if (typeof updateStats === 'function') updateStats();
+                if (typeof updateRequirementButtons === 'function') updateRequirementButtons();
+                
+                showSuccess('Caso eliminado correctamente', 'Eliminación exitosa');
+            };
+            
+            cancelBtn.onclick = () => {
+                toastSystem.hide(toast);
+            };
+            
+            buttonContainer.appendChild(cancelBtn);
+            buttonContainer.appendChild(confirmBtn);
+            
+            const toastContent = toast.querySelector('.toast-content');
+            if (toastContent) {
+                toastContent.appendChild(buttonContainer);
+            }
+            
+            // Ocultar el botón X del toast
+            const closeBtn = toast.querySelector('.toast-close');
+            if (closeBtn) {
+                closeBtn.style.display = 'none';
+            }
         }
-        window.currentCaseId = newActiveId;
-
-        // Hidratar proxies cambiando de caso (si hay alguno)
-        if (newActiveId && typeof switchToCase === 'function') {
-            switchToCase(newActiveId);
-        }
-    } else {
-        // Si no borramos el activo, garantizamos que los proxies sigan OK
-        if (typeof ensureTestCasesProxy === 'function') ensureTestCasesProxy();
-    }
-
-    // Persistir y refrescar UI/Stats/Header
-    if (typeof saveMulticaseData === 'function') saveMulticaseData();
-    if (typeof updateMulticaseUI === 'function') updateMulticaseUI();
-    if (typeof renderTestCases === 'function') renderTestCases();
-    if (typeof updateStats === 'function') updateStats();
-    if (typeof updateRequirementButtons === 'function') updateRequirementButtons();
+    }, 150);
 }
 
 
@@ -757,7 +828,7 @@ function handleEditCaseSubmit(e) {
     // Cerrar modal
     closeEditCaseModal();
 
-    alert(`✅ Caso "${caseNumber}: ${title}" actualizado exitosamente`);
+    showSuccess(`Caso "${caseNumber}: ${title}" actualizado exitosamente`, 'Caso actualizado');
 }
 
 /**
@@ -773,13 +844,13 @@ function handleNewCaseSubmit(e) {
     const variablesText = document.getElementById('newCaseVariables').value.trim();
 
     if (!caseNumber) {
-        alert('⚠️ El N° del Caso es obligatorio');
+        showWarning('El N° del Caso es obligatorio', 'Campo requerido');
         document.getElementById('newCaseNumber').focus();
         return;
     }
 
     if (!title) {
-        alert('⚠️ El título del caso es obligatorio');
+        showWarning('El título del caso es obligatorio', 'Campo requerido');
         document.getElementById('newCaseTitle').focus();
         return;
     }
@@ -805,7 +876,7 @@ function handleNewCaseSubmit(e) {
         // Cerrar modal
         closeNewCaseModal();
 
-        alert(`✅ Caso "${caseNumber}: ${title}" creado exitosamente`);
+        showSuccess(`Caso "${caseNumber}: ${title}" creado exitosamente`, 'Caso creado');
     }
 }
 

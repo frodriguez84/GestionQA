@@ -276,14 +276,14 @@ function handleNewRequirementSubmit(e) {
     
     // Validar datos
     if (!formData.number || !formData.name) {
-        alert('Por favor completa los campos obligatorios (Número y Nombre)');
+        showWarning('Por favor completa los campos obligatorios (Número y Nombre)', 'Campos requeridos');
         return;
     }
     
     // Verificar que el número no esté duplicado
     const existing = requirementsList.find(req => req.number === formData.number);
     if (existing) {
-        alert('Ya existe un requerimiento con ese número');
+        showError('Ya existe un requerimiento con ese número', 'Número duplicado');
         return;
     }
     
@@ -313,7 +313,7 @@ function handleEditRequirementSubmit(e) {
     const requirementId = modal.dataset.requirementId;
     
     if (!requirementId) {
-        alert('❌ Error: No se encontró el ID del requerimiento');
+        showError('No se encontró el ID del requerimiento', 'Error de edición');
         return;
     }
     
@@ -329,14 +329,14 @@ function handleEditRequirementSubmit(e) {
     
     // Validar datos
     if (!formData.number || !formData.name) {
-        alert('Por favor completa los campos obligatorios (Número y Nombre)');
+        showWarning('Por favor completa los campos obligatorios (Número y Nombre)', 'Campos requeridos');
         return;
     }
     
     // Verificar que el número no esté duplicado (excepto para el mismo requerimiento)
     const existing = requirementsList.find(req => req.number === formData.number && req.id !== requirementId);
     if (existing) {
-        alert('Ya existe otro requerimiento con ese número');
+        showError('Ya existe otro requerimiento con ese número', 'Número duplicado');
         return;
     }
     
@@ -411,14 +411,91 @@ function deleteRequirementConfirm(id) {
     const requirement = getRequirement(id);
     if (!requirement) return;
     
-    const confirmed = confirm(
-        `¿Estás seguro de que deseas eliminar el requerimiento "${requirement.name}"?\n\nEsta acción no se puede deshacer.`
+    // Mostrar toast de confirmación SIN auto-ocultado
+    const confirmationToast = toastSystem.show(
+        `¿Eliminar "${requirement.name}"? Esta acción no se puede deshacer.`,
+        'warning',
+        'Confirmar eliminación',
+        0  // 0 = NO auto-ocultado
     );
     
-    if (confirmed) {
-        deleteRequirement(id);
-        showNotification('Requerimiento eliminado', 'success');
-    }
+    // Crear botones de confirmación
+    setTimeout(() => {
+        // Buscar el toast más reciente (debería ser el de confirmación)
+        const toasts = document.querySelectorAll('.toast.show');
+        const toast = toasts[toasts.length - 1]; // El último toast mostrado
+        
+        if (toast) {
+            // Crear botones de confirmación
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = `
+                display: flex;
+                gap: 8px;
+                margin-top: 12px;
+                justify-content: flex-end;
+            `;
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.style.cssText = `
+                background: #6c757d;
+                color: white;
+                border: none;
+                padding: 6px 16px;
+                border-radius: 6px;
+                font-size: 13px;
+                cursor: pointer;
+                font-weight: 500;
+                transition: background 0.2s ease;
+            `;
+            
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = 'Sí, eliminar';
+            confirmBtn.style.cssText = `
+                background: #f44336;
+                color: white;
+                border: none;
+                padding: 6px 16px;
+                border-radius: 6px;
+                font-size: 13px;
+                cursor: pointer;
+                font-weight: 500;
+                transition: background 0.2s ease;
+            `;
+            
+            // Hover effects
+            cancelBtn.onmouseover = () => cancelBtn.style.background = '#5a6268';
+            cancelBtn.onmouseout = () => cancelBtn.style.background = '#6c757d';
+            confirmBtn.onmouseover = () => confirmBtn.style.background = '#dc3545';
+            confirmBtn.onmouseout = () => confirmBtn.style.background = '#f44336';
+            
+            // Eventos
+            confirmBtn.onclick = () => {
+                toastSystem.hide(toast);
+                deleteRequirement(id);
+                showSuccess('Requerimiento eliminado correctamente', 'Eliminación exitosa');
+            };
+            
+            cancelBtn.onclick = () => {
+                toastSystem.hide(toast);
+            };
+            
+            buttonContainer.appendChild(cancelBtn);
+            buttonContainer.appendChild(confirmBtn);
+            
+            // Agregar botones al toast
+            const toastContent = toast.querySelector('.toast-content');
+            if (toastContent) {
+                toastContent.appendChild(buttonContainer);
+            }
+            
+            // Ocultar el botón X del toast para que solo se cierre con los botones
+            const closeBtn = toast.querySelector('.toast-close');
+            if (closeBtn) {
+                closeBtn.style.display = 'none';
+            }
+        }
+    }, 150); // Aumentamos un poco el tiempo para asegurar que el toast esté renderizado
 }
 
 // ===============================================
@@ -462,39 +539,23 @@ function formatDate(dateString) {
 }
 
 /**
- * Muestra una notificación
+ * Muestra una notificación usando el sistema de toasts moderno
  */
 function showNotification(message, type = 'info') {
-    // Crear elemento de notificación
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.textContent = message;
+    // Mapear tipos del dashboard a tipos de toast
+    const toastType = type === 'success' ? 'success' : 
+                     type === 'error' ? 'error' : 
+                     type === 'warning' ? 'warning' : 'info';
     
-    // Estilos
-    notification.style.cssText = `
-        position: fixed;
-        top: 20px;
-        right: 20px;
-        background: ${type === 'success' ? '#28a745' : type === 'error' ? '#dc3545' : '#007bff'};
-        color: white;
-        padding: 1rem 1.5rem;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        z-index: 1001;
-        animation: slideInRight 0.3s ease;
-    `;
-    
-    document.body.appendChild(notification);
-    
-    // Remover después de 3 segundos
-    setTimeout(() => {
-        notification.style.animation = 'slideOutRight 0.3s ease';
-        setTimeout(() => {
-            if (notification.parentNode) {
-                notification.parentNode.removeChild(notification);
-            }
-        }, 300);
-    }, 3000);
+    // Usar el sistema de toasts moderno
+    if (typeof showToast === 'function') {
+        showToast(message, toastType);
+    } else if (typeof toastSystem !== 'undefined') {
+        toastSystem.show(message, toastType);
+    } else {
+        // Fallback al alert si no hay sistema de toasts
+        alert(message);
+    }
 }
 
 // ===============================================

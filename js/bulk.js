@@ -156,7 +156,7 @@ window.deleteBulkCases = function () {
     updateFilters();
     updateBulkToolbar();
 
-    alert(`✅ ${selectedCount} escenario${selectedCount > 1 ? 's' : ''} eliminado${selectedCount > 1 ? 's' : ''} correctamente\n\n🔢 Ciclo 1 renumerado secuencialmente\n📌 Ciclos 2+ mantuvieron sus números originales`);
+    showSuccess(`${selectedCount} escenario${selectedCount > 1 ? 's' : ''} eliminado${selectedCount > 1 ? 's' : ''} correctamente. Ciclo 1 renumerado secuencialmente.`, 'Eliminación masiva completada');
 }
 
 // ===============================================
@@ -188,7 +188,7 @@ window.hideBulkCases = function () {
     updateStats(); // Función existente
     updateBulkToolbar(); // Función existente
 
-    alert(`✅ ${selectedCount} escenario${selectedCount > 1 ? 's' : ''} ocultado${selectedCount > 1 ? 's' : ''} correctamente\n\n💡 Usa el filtro "Mostrar ocultos" para verlos nuevamente`);
+    showSuccess(`${selectedCount} escenario${selectedCount > 1 ? 's' : ''} ocultado${selectedCount > 1 ? 's' : ''} correctamente. Usa el filtro "Mostrar ocultos" para verlos nuevamente.`, 'Ocultación masiva completada');
 }
 
 // ===============================================
@@ -200,12 +200,12 @@ window.openBulkEditModal = function () {
     const selectedCount = selectedCases.size;
 
     if (selectedCount === 0) {
-        alert('❌ No hay escenarios seleccionados para editar');
+        showError('No hay escenarios seleccionados para editar', 'Sin selección');
         return;
     }
 
     if (selectedCount < 2) {
-        alert('💡 Para editar un solo escenario, usa el botón "Editar" individual.\nEsta función es para editar múltiples escenarios a la vez.');
+        showInfo('Para editar un solo escenario, usa el botón "Editar" individual. Esta función es para editar múltiples escenarios a la vez.', 'Edición individual');
         return;
     }
 

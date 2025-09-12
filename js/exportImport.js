@@ -25,7 +25,7 @@ function exportProjectJSONv3() {
         })();
 
         if (!req || !Array.isArray(req.cases) || req.cases.length === 0) {
-            alert("⚠️ No hay requerimiento para exportar");
+            showWarning("No hay requerimiento para exportar", "Exportación cancelada");
             return;
         }
 
@@ -55,16 +55,19 @@ function exportProjectJSONv3() {
         const a = document.createElement("a");
         a.href = url;
         a.download = `proyecto_multicaso_${new Date().toISOString().split("T")[0]}.json`;
+        
+        // Mostrar mensaje de "Listo para guardar" antes de hacer click
+        showInfo("Archivo JSON listo. Se abrirá el explorador para que elijas dónde guardarlo.", "Listo para guardar");
+        
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
         console.log("✅ Exportación JSON v3 completada");
-        alert("✅ Proyecto exportado en formato JSON v3");
     } catch (e) {
         console.error("❌ exportProjectJSONv3:", e);
-        alert("❌ Error exportando JSON v3");
+        showError("Error exportando JSON v3", "Error de exportación");
     }
 }
 
@@ -267,12 +270,12 @@ function exportProjectJSONv3() {
             } else if (fileOrText instanceof Blob || fileOrText instanceof File) {
                 text = await fileOrText.text();
             } else {
-                alert('Entrada no válida para importación.');
+                showError('Entrada no válida para importación.', 'Error de importación');
                 return;
             }
         } catch (e) {
             console.error("❌ Error leyendo archivo:", e);
-            alert("❌ No se pudo leer el archivo JSON");
+            showError("No se pudo leer el archivo JSON", "Error de lectura");
             return;
         }
 
@@ -280,7 +283,7 @@ function exportProjectJSONv3() {
         try {
             obj = JSON.parse(text);
         } catch {
-            alert('JSON inválido.');
+            showError('JSON inválido.', 'Error de formato');
             return;
         }
 
@@ -303,7 +306,7 @@ function exportProjectJSONv3() {
             console.log('🔎 Import JSON: detectado legacy → conversión 1 caso');
             importFromLegacy(obj);
         } else {
-            alert('Formato de archivo inválido.\nDebe ser un JSON v3 multicase (se acepta exportDate y falta de type) o legacy válido.');
+            showError('Formato de archivo inválido. Debe ser un JSON v3 multicase o legacy válido.', 'Error de formato');
             return;
         }
 
@@ -344,7 +347,7 @@ function exportProjectJSONv3() {
         const totalCases = (currentRequirement?.cases || []).length;
         const totalScenarios = (currentRequirement?.cases || [])
             .reduce((acc, c) => acc + (c.scenarios?.length || 0), 0);
-        alert(`✅ Proyecto importado: ${totalCases} caso(s), ${totalScenarios} escenario(s).`);
+        showSuccess(`Proyecto importado: ${totalCases} caso(s), ${totalScenarios} escenario(s).`, 'Importación exitosa');
     };
 
     // Abridor del file picker para JSON (botón Cargar JSON)
@@ -359,7 +362,7 @@ function exportProjectJSONv3() {
                 await window.importProjectJSONAuto(file); // Reemplaza TODO el proyecto
             } catch (err) {
                 console.error('Error en importación JSON:', err);
-                alert('❌ Error importando JSON: ' + (err?.message || err));
+                showError('Error importando JSON: ' + (err?.message || err), 'Error de importación');
             }
         };
         input.click();
@@ -371,7 +374,7 @@ function exportProjectJSONv3() {
 // --------- EXPORTAR A EXCEL (caso activo) ----------
 async function exportToExcel() {
     if (!currentRequirement || !currentCaseId) {
-        alert("⚠️ No hay requerimiento/caso activo para exportar");
+        showWarning("No hay requerimiento/caso activo para exportar", "Exportación cancelada");
         return;
     }
 
@@ -566,11 +569,14 @@ async function exportToExcel() {
     const link = document.createElement("a");
     link.href = url;
     link.download = `Casos de Prueba ${hora}.xlsx`;
+    
+    // Mostrar mensaje de "Listo para guardar" antes de hacer click
+    showInfo("Archivo Excel listo. Se abrirá el explorador para que elijas dónde guardarlo.", "Listo para guardar");
+    
     link.click();
     URL.revokeObjectURL(url);
 
     console.log("✅ Exportación Excel completada (solo imágenes)");
-    setTimeout(() => alert("✅ Excel exportado (solo imágenes)"), 350);
 }
 
 // =====================================================
@@ -795,7 +801,7 @@ function __buildCaseSheet(workbook, caseObj) {
 // Exporta TODO: Hoja 1 + una hoja por cada caso
 async function exportAllCasesToExcel() {
     if (!currentRequirement || !Array.isArray(currentRequirement.cases)) {
-        alert("⚠️ No hay proyecto para exportar");
+        showWarning("No hay proyecto para exportar", "Exportación cancelada");
         return;
     }
     if (typeof saveMulticaseData === "function") saveMulticaseData();
@@ -820,11 +826,14 @@ async function exportAllCasesToExcel() {
     const link = document.createElement("a");
     link.href = url;
     link.download = `Proyecto_Testing_${stamp}.xlsx`;
+    
+    // Mostrar mensaje de "Listo para guardar" antes de hacer click
+    showInfo("Archivo Excel completo listo. Se abrirá el explorador para que elijas dónde guardarlo.", "Listo para guardar");
+    
     link.click();
     URL.revokeObjectURL(url);
 
     console.log("✅ Exportación Excel (todo el proyecto) lista");
-    setTimeout(() => alert("✅ Excel exportado: Requerimiento + TODOS los casos"), 350);
 }
 
 
@@ -846,7 +855,7 @@ window.importFromExcel = function () {
             processExcelFile(ev.target.result, file.name)
                 .catch(err => {
                     console.error('Error al procesar Excel:', err);
-                    alert('❌ Error al procesar el archivo Excel:\n' + err.message);
+                    showError('Error al procesar el archivo Excel: ' + err.message, 'Error de procesamiento');
                 })
                 .finally(() => hideImportProgress());
         };

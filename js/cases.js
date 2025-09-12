@@ -67,7 +67,7 @@ document.getElementById('configVarsForm').onsubmit = function (e) {
     saveToStorage();
     renderTestCases();
     document.getElementById('configVarsModal').style.display = 'none';
-    alert('✅ Configuración de variables actualizada');
+    showSuccess('Configuración de variables actualizada', 'Configuración guardada');
 };
 
 // ===============================================
@@ -130,7 +130,7 @@ window.openEditModal = function (id) {
     if (!testCase) {
         console.error('❌ Escenario no encontrado para editar:', id);
         console.log('📊 testCases disponibles:', testCases.map(tc => ({ id: tc.id, scenario: tc.scenarioNumber })));
-        alert('❌ No se pudo encontrar el caso a editar');
+        showError('No se pudo encontrar el caso a editar', 'Error de edición');
         return;
     }
 
@@ -212,11 +212,11 @@ window.handleEvidenceUpload = function () {
             ALLOWED_EXACT.includes(file.type);
 
         if (!isAllowed) {
-            alert(`⚠️ Tipo no permitido: ${file.name} (${file.type || 'desconocido'})`);
+            showWarning(`Tipo no permitido: ${file.name} (${file.type || 'desconocido'})`, 'Archivo no válido');
             return;
         }
         if (file.size > MAX_BYTES) {
-            alert(`⚠️ ${file.name} supera el límite de 10MB`);
+            showWarning(`${file.name} supera el límite de 10MB`, 'Archivo muy grande');
             return;
         }
 
@@ -514,7 +514,7 @@ window.duplicateTestCase = function (id) {
     if (!originalCase) {
         console.error('❌ Escenario no encontrado en testCases:', id);
         console.log('📊 testCases disponibles:', testCases.map(tc => ({ id: tc.id, scenario: tc.scenarioNumber })));
-        alert('❌ No se pudo encontrar el caso a duplicar');
+        showError('No se pudo encontrar el caso a duplicar', 'Error de duplicación');
         return;
     }
 
@@ -562,7 +562,7 @@ window.duplicateTestCase = function (id) {
         updateStats();
         updateFilters();
 
-        alert(`✅ Escenario ${duplicatedCase.scenarioNumber} (Ciclo 1) creado automáticamente`);
+        showSuccess(`Escenario ${duplicatedCase.scenarioNumber} (Ciclo 1) creado automáticamente`, 'Escenario creado');
         console.log('✅ Duplicación automática completada');
         return;
     }
@@ -648,41 +648,110 @@ window.deleteTestCase = function (id) {
         return;
     }
 
-    if (confirm('¿Estás seguro de que deseas eliminar este escenario de prueba?')) {
-        console.log('✅ Confirmada eliminación del escenario:', deletedCase.scenarioNumber);
+    // Mostrar toast de confirmación SIN auto-ocultado
+    const confirmationToast = toastSystem.show(
+        '¿Eliminar este escenario de prueba? Esta acción no se puede deshacer.',
+        'warning',
+        'Confirmar eliminación',
+        0  // 0 = NO auto-ocultado
+    );
+    
+    // Crear botones de confirmación
+    setTimeout(() => {
+        const toasts = document.querySelectorAll('.toast.show');
+        const toast = toasts[toasts.length - 1];
+        
+        if (toast) {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = `
+                display: flex;
+                gap: 8px;
+                margin-top: 12px;
+                justify-content: flex-end;
+            `;
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.style.cssText = `
+                background: #6c757d;
+                color: white;
+                border: none;
+                padding: 6px 16px;
+                border-radius: 6px;
+                font-size: 13px;
+                cursor: pointer;
+                font-weight: 500;
+            `;
+            
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = 'Sí, eliminar';
+            confirmBtn.style.cssText = `
+                background: #f44336;
+                color: white;
+                border: none;
+                padding: 6px 16px;
+                border-radius: 6px;
+                font-size: 13px;
+                cursor: pointer;
+                font-weight: 500;
+            `;
+            
+            confirmBtn.onclick = () => {
+                toastSystem.hide(toast);
+                console.log('✅ Confirmada eliminación del escenario:', deletedCase.scenarioNumber);
 
-        // Eliminar el caso
-        testCases = testCases.filter(tc => tc.id !== id);
+                // Eliminar el caso
+                testCases = testCases.filter(tc => tc.id !== id);
 
-        // Aplicar renumeración inteligente
-        smartRenumberAfterDeletion();
+                // Aplicar renumeración inteligente
+                smartRenumberAfterDeletion();
 
-        // 🎯 SINCRONIZAR INMEDIATAMENTE CON MULTICASO
-        if (typeof syncScenariosWithCurrentCase === 'function') {
-            syncScenariosWithCurrentCase();
+                // 🎯 SINCRONIZAR INMEDIATAMENTE CON MULTICASO
+                if (typeof syncScenariosWithCurrentCase === 'function') {
+                    syncScenariosWithCurrentCase();
+                }
+
+                // Guardar cambios y actualizar la tabla
+                saveToStorage();
+
+                // 🎯 NUEVO: Actualizar UI multicaso inmediatamente
+                if (typeof autoUpdateMulticaseUI === 'function') {
+                    autoUpdateMulticaseUI();
+                }
+
+                renderTestCases();
+                updateStats();
+                updateFilters();
+
+                const cycle = deletedCase.cycleNumber || '1';
+                if (cycle === '1') {
+                    showSuccess('Escenario eliminado y Ciclo 1 renumerado correctamente', 'Eliminación exitosa');
+                } else {
+                    showSuccess(`Escenario eliminado (Ciclo ${cycle} mantiene numeración original)`, 'Eliminación exitosa');
+                }
+
+                console.log('✅ Eliminación completada correctamente');
+            };
+            
+            cancelBtn.onclick = () => {
+                toastSystem.hide(toast);
+            };
+            
+            buttonContainer.appendChild(cancelBtn);
+            buttonContainer.appendChild(confirmBtn);
+            
+            const toastContent = toast.querySelector('.toast-content');
+            if (toastContent) {
+                toastContent.appendChild(buttonContainer);
+            }
+            
+            // Ocultar el botón X del toast
+            const closeBtn = toast.querySelector('.toast-close');
+            if (closeBtn) {
+                closeBtn.style.display = 'none';
+            }
         }
-
-        // Guardar cambios y actualizar la tabla
-        saveToStorage();
-
-        // 🎯 NUEVO: Actualizar UI multicaso inmediatamente
-        if (typeof autoUpdateMulticaseUI === 'function') {
-            autoUpdateMulticaseUI();
-        }
-
-        renderTestCases();
-        updateStats();
-        updateFilters();
-
-        const cycle = deletedCase.cycleNumber || '1';
-        if (cycle === '1') {
-            alert('✅ Escenario eliminado y Ciclo 1 renumerado correctamente');
-        } else {
-            alert(`✅ Escenario eliminado (Ciclo ${cycle} mantiene numeración original)`);
-        }
-
-        console.log('✅ Eliminación completada correctamente');
-    }
+    }, 150);
 };
 
 // ===============================================

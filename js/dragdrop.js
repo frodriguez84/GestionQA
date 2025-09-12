@@ -34,8 +34,16 @@ function canPerformDrag() {
     return true;
 }
 
+// Variable global para controlar notificaciones duplicadas
+let dragRestrictionNotification = null;
+
 // Mostrar mensaje sutil de restricción
 function showDragRestrictionMessage() {
+    // Si ya hay una notificación visible, no mostrar otra
+    if (dragRestrictionNotification && document.body.contains(dragRestrictionNotification)) {
+        return;
+    }
+
     // Crear notificación sutil
     const notification = document.createElement('div');
     notification.className = 'drag-restriction-notification';
@@ -47,11 +55,18 @@ function showDragRestrictionMessage() {
     `;
 
     document.body.appendChild(notification);
+    
+    // Guardar referencia global
+    dragRestrictionNotification = notification;
 
     // Remover después de 3 segundos
     setTimeout(() => {
         if (notification.parentNode) {
             notification.remove();
+        }
+        // Limpiar referencia cuando se remueve
+        if (dragRestrictionNotification === notification) {
+            dragRestrictionNotification = null;
         }
     }, 3000);
 }

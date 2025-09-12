@@ -122,7 +122,7 @@ function updateDevButtons() {
 function forceUpdate() {
     if (!isDeveloper()) {
         console.warn('⛔ Acceso denegado: Solo para desarrolladores');
-        alert('🔒 Acceso denegado: Esta función es solo para desarrolladores');
+        showError('Esta función es solo para desarrolladores', 'Acceso denegado');
         return;
     }
 
@@ -486,23 +486,92 @@ window.closeRequirementModal = function () {
 
 // Limpiar toda la información del requerimiento
 window.clearRequirementInfo = function () {
-    if (confirm('⚠️ ¿Estás seguro de que deseas eliminar toda la información del requerimiento?\n\nEsta acción no se puede deshacer.')) {
-        requirementInfo = {
-            number: '',
-            name: '',
-            description: '',
-            caso: '',
-            titleCase: '',
-            tester: '',
-            startDate: ''
-        };
+    // Mostrar toast de confirmación SIN auto-ocultado
+    const confirmationToast = toastSystem.show(
+        '¿Eliminar toda la información del requerimiento? Esta acción no se puede deshacer.',
+        'warning',
+        'Confirmar eliminación',
+        0  // 0 = NO auto-ocultado
+    );
+    
+    // Crear botones de confirmación
+    setTimeout(() => {
+        const toasts = document.querySelectorAll('.toast.show');
+        const toast = toasts[toasts.length - 1];
+        
+        if (toast) {
+            const buttonContainer = document.createElement('div');
+            buttonContainer.style.cssText = `
+                display: flex;
+                gap: 8px;
+                margin-top: 12px;
+                justify-content: flex-end;
+            `;
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancelar';
+            cancelBtn.style.cssText = `
+                background: #6c757d;
+                color: white;
+                border: none;
+                padding: 6px 16px;
+                border-radius: 6px;
+                font-size: 13px;
+                cursor: pointer;
+                font-weight: 500;
+            `;
+            
+            const confirmBtn = document.createElement('button');
+            confirmBtn.textContent = 'Sí, eliminar';
+            confirmBtn.style.cssText = `
+                background: #f44336;
+                color: white;
+                border: none;
+                padding: 6px 16px;
+                border-radius: 6px;
+                font-size: 13px;
+                cursor: pointer;
+                font-weight: 500;
+            `;
+            
+            confirmBtn.onclick = () => {
+                toastSystem.hide(toast);
+                requirementInfo = {
+                    number: '',
+                    name: '',
+                    description: '',
+                    caso: '',
+                    titleCase: '',
+                    tester: '',
+                    startDate: ''
+                };
 
-        saveRequirementInfo();
-        updateRequirementDisplay();
-        closeRequirementModal();
+                saveRequirementInfo();
+                updateRequirementDisplay();
+                closeRequirementModal();
 
-        alert('✅ Información del requerimiento eliminada correctamente');
-    }
+                showSuccess('Información del requerimiento eliminada correctamente', 'Requerimiento eliminado');
+            };
+            
+            cancelBtn.onclick = () => {
+                toastSystem.hide(toast);
+            };
+            
+            buttonContainer.appendChild(cancelBtn);
+            buttonContainer.appendChild(confirmBtn);
+            
+            const toastContent = toast.querySelector('.toast-content');
+            if (toastContent) {
+                toastContent.appendChild(buttonContainer);
+            }
+            
+            // Ocultar el botón X del toast
+            const closeBtn = toast.querySelector('.toast-close');
+            if (closeBtn) {
+                closeBtn.style.display = 'none';
+            }
+        }
+    }, 150);
 }
 
 // ===============================================
@@ -667,25 +736,25 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Validaciones
             if (!cycleNumber) {
-                alert('⚠️ El Ciclo es obligatorio');
+                showWarning('El Ciclo es obligatorio', 'Campo requerido');
                 document.getElementById('cycleNumber').focus();
                 return;
             }
 
             if (!scenarioNumber) {
-                alert('⚠️ El N° Escenario es obligatorio');
+                showWarning('El N° Escenario es obligatorio', 'Campo requerido');
                 document.getElementById('scenarioNumber').focus();
                 return;
             }
 
             if (!description) {
-                alert('⚠️ La Descripción es obligatoria');
+                showWarning('La Descripción es obligatoria', 'Campo requerido');
                 document.getElementById('description').focus();
                 return;
             }
 
             if (!tester) {
-                alert('⚠️ El Nombre del Tester es obligatorio');
+                showWarning('El Nombre del Tester es obligatorio', 'Campo requerido');
                 document.getElementById('tester').focus();
                 return;
             }
@@ -757,7 +826,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log('✅ Caso editado:', testCaseData);
                 } else {
                     console.error('❌ No se encontró el caso a editar:', currentEditingId);
-                    alert('❌ Error: No se pudo encontrar el caso a editar');
+                    showError('No se pudo encontrar el caso a editar', 'Error de edición');
                     return;
                 }
             } else {
@@ -814,7 +883,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const action = currentEditingId !== null ? 'actualizado' :
                 window.isDuplicating ? 'duplicado' : 'creado';
-            alert(`✅ Escenario ${action} correctamente`);
+            showSuccess(`Escenario ${action} correctamente`, 'Escenario guardado');
 
             // Limpiar variables de estado
             currentEditingId = null;
@@ -833,13 +902,13 @@ document.addEventListener('DOMContentLoaded', function () {
             const name = document.getElementById('reqName').value.trim();
 
             if (!number) {
-                alert('❌ El N° de Requerimiento es obligatorio');
+                showError('El N° de Requerimiento es obligatorio', 'Campo requerido');
                 document.getElementById('reqNumber').focus();
                 return;
             }
 
             if (!name) {
-                alert('❌ El Nombre del Requerimiento es obligatorio');
+                showError('El Nombre del Requerimiento es obligatorio', 'Campo requerido');
                 document.getElementById('reqName').focus();
                 return;
             }
@@ -883,7 +952,7 @@ document.addEventListener('DOMContentLoaded', function () {
             updateRequirementButtons();
 
 
-            alert('✅ Información del requerimiento guardada correctamente');
+            showSuccess('Información del requerimiento guardada correctamente', 'Requerimiento guardado');
         });
     }
 

@@ -330,15 +330,28 @@ function calculateRealStatsFromCases(requirement) {
     // Contar casos completados (todos los escenarios del caso deben tener su último ciclo OK)
     requirement.cases.forEach(caseObj => {
         if (caseObj.scenarios && caseObj.scenarios.length > 0) {
-            // Verificar si todos los escenarios del caso están completos
-            const allScenariosComplete = caseObj.scenarios.every(scenario => {
-                // Un escenario está completo si su último ciclo está OK
-                if (scenario.cycles && scenario.cycles.length > 0) {
-                    const lastCycle = scenario.cycles[scenario.cycles.length - 1];
-                    return lastCycle && lastCycle.status === 'OK';
+            // Agrupar escenarios por número de escenario
+            const scenarioGroups = {};
+            caseObj.scenarios.forEach(scenario => {
+                const scenarioNum = scenario.scenarioNumber || scenario.scenario;
+                if (!scenarioGroups[scenarioNum]) {
+                    scenarioGroups[scenarioNum] = [];
                 }
-                // Si no tiene ciclos, verificar el status directo del escenario
-                return scenario.status === 'OK';
+                scenarioGroups[scenarioNum].push(scenario);
+            });
+            
+            // Verificar si todos los escenarios del caso están completos
+            const allScenariosComplete = Object.values(scenarioGroups).every(scenarioGroup => {
+                // Ordenar por número de ciclo para obtener el último
+                scenarioGroup.sort((a, b) => {
+                    const cycleA = parseInt(a.cycleNumber || a.cycle) || 0;
+                    const cycleB = parseInt(b.cycleNumber || b.cycle) || 0;
+                    return cycleA - cycleB;
+                });
+                
+                // El último ciclo debe estar OK
+                const lastCycle = scenarioGroup[scenarioGroup.length - 1];
+                return lastCycle && lastCycle.status === 'OK';
             });
             
             if (allScenariosComplete) {
