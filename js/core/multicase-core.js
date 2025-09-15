@@ -437,7 +437,7 @@ function switchToCase(caseId) {
  */
 function saveMulticaseData() {
     if (!currentRequirement) {
-        console.warn('⚠️ No hay requerimiento para guardar');
+        // No hay requerimiento para guardar
         return;
     }
 
@@ -772,7 +772,7 @@ function syncScenariosWithCurrentCase() {
     console.log('🔍 DEBUG - testCases.length:', testCases ? testCases.length : 'No definido'); */
     
     if (!currentRequirement || !currentCaseId) {
-        console.log('⚠️ No hay caso activo para sincronizar');
+        // No hay caso activo para sincronizar
         return false;
     }
 

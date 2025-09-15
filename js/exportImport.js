@@ -1227,7 +1227,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.exportAllCasesToExcel = exportAllCasesToExcel;
         }
 
-        console.log('🧩 exportImport.js listo (funciones globales expuestas)');
+        /* console.log('🧩 exportImport.js listo (funciones globales expuestas)'); */
     } catch (e) {
         console.error('❌ Error exponiendo funciones globales:', e);
     }

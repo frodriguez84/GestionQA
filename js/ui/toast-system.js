@@ -33,10 +33,10 @@ class ToastSystem {
                 align-items: flex-end !important;
             `;
             document.body.appendChild(this.container);
-            console.log('🍞 Contenedor de toasts creado');
+            // Contenedor de toasts creado
         } else {
             this.container = document.querySelector('.toast-container');
-            console.log('🍞 Contenedor de toasts encontrado');
+            // Contenedor de toasts encontrado
         }
     }
 
@@ -217,4 +217,4 @@ window.showWarning = showWarning;
 window.showInfo = showInfo;
 window.showAlert = showAlert;
 
-console.log('🍞 Sistema de toasts inicializado');
+// Sistema de toasts inicializado

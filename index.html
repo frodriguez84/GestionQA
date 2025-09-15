@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-cache-bust="20250112f">
 
 <head>
     <meta charset="UTF-8">
@@ -8,6 +8,38 @@
     <link rel="manifest" href="manifest.json">
     <!-- ✅ SOLO UN ARCHIVO CSS UNIFICADO -->
     <link rel="stylesheet" href="css/finalStyles.css?v=20250111d">
+    <style>
+        .version-display {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+            font-size: 12px;
+            color: #333;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .version-info {
+            line-height: 1.6;
+        }
+        
+        .version-info strong {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        /* Estilos para modo oscuro */
+        [data-theme="dark"] .version-display {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            border-color: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        [data-theme="dark"] .version-info strong {
+            color: #81c784;
+        }
+    </style>
 </head>
 
 <body>
@@ -78,8 +110,9 @@
                         <button class="btn btn-warning" onclick="renumberCycle1()">🔢 Renumerar Ciclos y
                             Escenarios</button>
 
-                        <button class="btn btn-info btn-dev-only" id="btnForceUpdate" style="display: none;">🔄 Forzar
-                            Update</button>
+                        <button class="btn btn-info" id="btnForceUpdate" onclick="forceUpdateApp()">🔄 Forzar Update</button>
+                        <button class="btn btn-success" id="btnCheckUpdates" onclick="checkUpdatesFallback()">🔍 Verificar Actualizaciones</button>
+
 
                         <!-- Separador para zona peligrosa -->
                         <div class="config-separator"></div>
@@ -559,17 +592,28 @@
     <script src="js/optimization/event-system.js?v=20250111a"></script>
     <script src="js/optimization/lazy-loader.js?v=20250111a"></script>
     <script src="js/optimization/search-optimizer.js?v=20250111a"></script>
+    <!-- UPDATE SYSTEM (Automatic updates) -->
+    <script src="js/version-manager.js?v=20250112a"></script>
+    <script src="js/update-manager.js?v=20250112d"></script>
+    
     <script src="js/optimization/smart-cache.js?v=20250111a"></script>
     <script src="js/optimization/dom-optimizer.js?v=20250111a"></script>
     <script src="js/optimization/input-optimizer.js?v=20250111a"></script>
     <script src="js/optimization/virtual-scroll.js?v=20250111a"></script>
     
     <!-- CORE (Core functionality) -->
-    <script src="js/core/core.js?v=20250111q"></script>
-    <script src="js/core/multicase-core.js?v=20250112j"></script>
-    <script src="js/core/sync-manager.js?v=20250111o"></script>
+    <script src="js/core/core.js?v=20250112d"></script>
+    <script src="js/core/multicase-core.js?v=20250112k"></script>
+    <script src="js/core/sync-manager.js?v=20250112a"></script>
     <script src="js/core/timers.js?v=20250111u"></script>
-    <script src="js/core/bugfixing-timers.js?v=20250111a"></script>
+    <script src="js/core/bugfixing-timers.js?v=20250112b"></script>
+    
+    <!-- ARCHITECTURE MIGRATION (Safe migration system) -->
+    <script src="js/architecture-migration.js?v=20250112e"></script>
+    <script src="js/unified-data-system.js?v=20250112d"></script>
+    <script src="js/unified-persistence.js?v=20250112d"></script>
+    <script src="js/legacy-cleanup-final.js?v=20250112d"></script>
+    <script src="js/migration-test.js?v=20250112d"></script>
     
     <!-- LEGACY (Migration) -->
     <script src="js/legacy/legacy-cleanup.js?v=20250111a"></script>
@@ -577,10 +621,10 @@
     <script src="js/legacy/data-migration.js?v=20250111a"></script>
     
     <!-- UI (User Interface) -->
-    <script src="js/ui/multicase-ui.js?v=20250112i"></script>
-    <script src="js/ui/ui.js?v=20250111k"></script>
-    <script src="js/ui/cases.js?v=20250112h"></script>
-    <script src="js/ui/toast-system.js?v=20250111b"></script>
+    <script src="js/ui/multicase-ui.js?v=20250112j"></script>
+    <script src="js/ui/ui.js?v=20250112b"></script>
+    <script src="js/ui/cases.js?v=20250112i"></script>
+    <script src="js/ui/toast-system.js?v=20250112a"></script>
     
     <!-- FEATURES (Additional features) - MOVED HERE TO LOAD AFTER CASES -->
     <script src="js/bulk.js?v=20250111e"></script>
@@ -589,17 +633,17 @@
     <script src="js/reports.js?v=20250112f"></script>
     
     <!-- DASHBOARD (Dashboard functionality) -->
-    <script src="js/dashboard/dashboard-core.js?v=20250112a"></script>
-    <script src="js/dashboard/dashboard-ui.js?v=20250112a"></script>
+    <script src="js/dashboard/dashboard-core.js?v=20250112g"></script>
+    <script src="js/dashboard/dashboard-ui.js?v=20250112d"></script>
     <script src="js/dashboard/dashboard-storage.js?v=20250111e"></script>
-    <script src="js/dashboard/dashboard-theme.js?v=20250111e"></script>
+    <script src="js/dashboard/dashboard-theme.js?v=20250112a"></script>
     
 
     <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx-populate/browser/xlsx-populate.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
     <script>
@@ -637,7 +681,7 @@
                 // Marcar el body como ready
                 document.body.classList.add('multicase-ready');
 
-                console.log('✅ Sistema multicaso completamente iniciado sin flash');
+                // Sistema multicaso completamente iniciado sin flash
 
                 // Limpiar el loader después de la transición
                 setTimeout(() => {
@@ -789,6 +833,66 @@
             console.log('📢 Notificación de actualización mostrada');
         }
     </script>
+
+    <!-- Footer con información de versión -->
+    <footer class="app-footer">
+        <div class="version-info">
+            <div id="version-display" class="version-display"></div>
+        </div>
+    </footer>
+
+    <style>
+        .app-footer {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border-top: 1px solid #475569;
+            padding: 8px 16px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            margin-top: auto;
+        }
+
+        .version-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .version-display {
+            font-size: 12px;
+            color: #94a3b8;
+            text-align: center;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .version-display .version-info {
+            margin: 0;
+            padding: 2px 8px;
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        /* Dark mode support */
+        [data-theme="dark"] .app-footer {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            border-top-color: #334155;
+        }
+
+        [data-theme="dark"] .version-display {
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .version-display .version-info {
+            background: rgba(100, 116, 139, 0.1);
+            border-color: rgba(100, 116, 139, 0.2);
+        }
+
+        /* Ajustar el contenido principal para que no se superponga con el footer */
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
 </body>
 
 </html>

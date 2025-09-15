@@ -47,7 +47,7 @@ function initDashboardThemeSystem() {
         }));
     });
 
-    console.log('🎨 Sistema de tema del dashboard inicializado:', savedTheme);
+    // Sistema de tema del dashboard inicializado
 }
 
 /**

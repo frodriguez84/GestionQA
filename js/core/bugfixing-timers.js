@@ -68,28 +68,23 @@ function startBugfixingTimer(scenarioId) {
     }
     
     // 🎯 CRÍTICO: También guardar en multicaseData para preservar timers
-    console.log('🔍 DEBUG startBugfixingTimer: saveMulticaseData disponible:', typeof saveMulticaseData === 'function');
     if (typeof saveMulticaseData === 'function') {
-        console.log('🔄 startBugfixingTimer: Guardando en multicaseData...');
         saveMulticaseData();
-        console.log('✅ startBugfixingTimer: Guardado en multicaseData completado');
         
-        // Verificar que realmente se guardó
-        try {
-            const compressedData = localStorage.getItem('multicaseData');
-            if (compressedData) {
-                const data = typeof decompressData === 'function' ? decompressData(compressedData) : JSON.parse(compressedData);
-                console.log('🔍 DEBUG: multicaseData después de guardar:', {
-                    existe: !!data,
-                    tieneCases: !!(data && data.currentRequirement && data.currentRequirement.cases),
-                    casosLength: data?.currentRequirement?.cases?.length || 0
-                });
+        // 🆕 CRÍTICO: Sincronizar inmediatamente con el dashboard
+        setTimeout(() => {
+            if (typeof syncFromAppToDashboard === 'function') {
+                syncFromAppToDashboard();
+                
+                // Actualizar estadísticas del dashboard
+                setTimeout(() => {
+                    if (typeof updateAllRequirementsStats === 'function') {
+                        updateAllRequirementsStats();
+                    }
+                }, 500);
             }
-        } catch (e) {
-            console.warn('⚠️ Error verificando multicaseData:', e);
-        }
-    } else {
-        console.warn('⚠️ startBugfixingTimer: saveMulticaseData no está disponible');
+        }, 100);
+        
     }
     
     return true;
@@ -146,28 +141,23 @@ function stopBugfixingTimer(scenarioId) {
     }
     
     // 🎯 CRÍTICO: También guardar en multicaseData para preservar timers
-    console.log('🔍 DEBUG stopBugfixingTimer: saveMulticaseData disponible:', typeof saveMulticaseData === 'function');
     if (typeof saveMulticaseData === 'function') {
-        console.log('🔄 stopBugfixingTimer: Guardando en multicaseData...');
         saveMulticaseData();
-        console.log('✅ stopBugfixingTimer: Guardado en multicaseData completado');
         
-        // Verificar que realmente se guardó
-        try {
-            const compressedData = localStorage.getItem('multicaseData');
-            if (compressedData) {
-                const data = typeof decompressData === 'function' ? decompressData(compressedData) : JSON.parse(compressedData);
-                console.log('🔍 DEBUG: multicaseData después de guardar:', {
-                    existe: !!data,
-                    tieneCases: !!(data && data.currentRequirement && data.currentRequirement.cases),
-                    casosLength: data?.currentRequirement?.cases?.length || 0
-                });
+        // 🆕 CRÍTICO: Sincronizar inmediatamente con el dashboard
+        setTimeout(() => {
+            if (typeof syncFromAppToDashboard === 'function') {
+                syncFromAppToDashboard();
+                
+                // Actualizar estadísticas del dashboard
+                setTimeout(() => {
+                    if (typeof updateAllRequirementsStats === 'function') {
+                        updateAllRequirementsStats();
+                    }
+                }, 500);
             }
-        } catch (e) {
-            console.warn('⚠️ Error verificando multicaseData:', e);
-        }
-    } else {
-        console.warn('⚠️ stopBugfixingTimer: saveMulticaseData no está disponible');
+        }, 100);
+        
     }
     
     return true;

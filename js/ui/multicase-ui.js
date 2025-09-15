@@ -136,7 +136,7 @@ function goToDashboard() {
 function createRequirementHeader() {
     
     if (!hasActiveRequirement()) {
-        console.log('⚠️ No hay requerimiento activo, ocultando header');
+        // No hay requerimiento activo, ocultando header
         // Si no hay requerimiento, ocultar header existente
         const headerContainer = document.getElementById('requirementHeader');
         if (headerContainer) {

@@ -1395,11 +1395,11 @@ window.formatDateForDisplay = formatDateForDisplay;
 window.updateManualTime = updateManualTime;
 
 // DEBUG: Verificar que las funciones estén disponibles
-console.log('🔍 DEBUG cases.js cargado:');
-console.log('🔍 renderTestCases disponible:', typeof window.renderTestCases);
-console.log('🔍 updateAppStats disponible:', typeof window.updateAppStats);
-console.log('🔍 updateFilters disponible:', typeof window.updateFilters);
-console.log('🔍 updateManualTime disponible:', typeof window.updateManualTime);
+// console.log('🔍 DEBUG cases.js cargado:');
+// console.log('🔍 renderTestCases disponible:', typeof window.renderTestCases);
+// console.log('🔍 updateAppStats disponible:', typeof window.updateAppStats);
+// console.log('🔍 updateFilters disponible:', typeof window.updateFilters);
+// console.log('🔍 updateManualTime disponible:', typeof window.updateManualTime);
 
 // ✅ FUNCIONES CRÍTICAS PARA DUPLICACIÓN
 window.insertCaseInCorrectPosition = insertCaseInCorrectPosition;

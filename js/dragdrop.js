@@ -1045,7 +1045,7 @@ window.renumberCycle1 = function () {
 
 // Inicializar sistema cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function () {
-    console.log('🎯 Sistema de Drag & Drop para escenarios inicializado');
+    /* console.log('🎯 Sistema de Drag & Drop para escenarios inicializado'); */
 
     // Asegurar que el sistema esté limpio
     cleanupDragState();

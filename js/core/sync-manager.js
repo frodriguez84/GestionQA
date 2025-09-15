@@ -23,7 +23,8 @@ function preserveBugfixingTimers(appCases, dashboardCases) {
                         ...appScenario.bugfixingTimer,
                         // Mantener el estado y tiempo acumulado
                     };
-                    console.log(`🔄 Timer preservado para Caso ${appCase.id.split('_')[1]}, Escenario ${appScenario.scenarioNumber} - Ciclo ${appScenario.cycleNumber}:`, {
+                    const caseNumber = appCase.caseNumber || appCase.title || `Caso ${appCase.id.split('_')[1]}`;
+                    console.log(`🔄 Timer preservado para ${caseNumber}, Escenario ${appScenario.scenarioNumber} - Ciclo ${appScenario.cycleNumber}:`, {
                         state: appScenario.bugfixingTimer.state,
                         accumulated: appScenario.bugfixingTimer.accumulated,
                         tiempoFormateado: `${Math.floor(appScenario.bugfixingTimer.accumulated / 60)}h ${Math.floor(appScenario.bugfixingTimer.accumulated % 60)}m`

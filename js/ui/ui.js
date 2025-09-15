@@ -22,7 +22,7 @@ function switchTab(tabName) {
         // Guardar tab activo en localStorage
         localStorage.setItem('activeTab', tabName);
 
-        console.log(`📱 Tab cambiado a: ${tabName}`);
+        // Tab cambiado
 
         // Ejecutar funciones específicas según el tab
         onTabChange(tabName);
@@ -112,7 +112,7 @@ function updateDevButtons() {
     });
 
     if (showDevButtons) {
-        console.log('👨‍💻 Botones de desarrollador visibles');
+        // Botones de desarrollador visibles
     }
 }
 
@@ -230,7 +230,7 @@ function initThemeSystem() {
         }));
     });
 
-    console.log('🎨 Sistema de tema inicializado:', savedTheme);
+    // Sistema de tema inicializado
 }
 
 /**
@@ -270,7 +270,12 @@ function loadRequirementInfo() {
     const saved = localStorage.getItem('requirementInfo');
     if (saved) {
         try {
-            requirementInfo = JSON.parse(saved);
+            // Intentar descomprimir primero si está disponible
+            if (typeof decompressData === 'function') {
+                requirementInfo = decompressData(saved);
+            } else {
+                requirementInfo = JSON.parse(saved);
+            }
         } catch (e) {
             console.error('Error al cargar información del requerimiento:', e);
             requirementInfo = {
@@ -668,7 +673,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // INICIALIZACIÓN SISTEMA DE TABS
     // ===============================================
 
-    console.log('🚀 Inicializando sistema de tabs...');
+    // Inicializando sistema de tabs...
 
     // Event listeners para cambio de tabs
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -1028,7 +1033,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    console.log('✅ Sistema de tabs y UI inicializado correctamente');
+    // Sistema de tabs y UI inicializado correctamente
 });
 
 // ===============================================
@@ -1064,31 +1069,14 @@ function syncRequirementData() {
     }
 }
 
-// 🔍 FUNCIÓN DE DIAGNÓSTICO
+// 🔍 FUNCIÓN DE DIAGNÓSTICO (solo para desarrollo)
 window.diagnoseApp = function() {
-    console.log('🔍 DIAGNÓSTICO DE LA APLICACIÓN:');
-    console.log('📊 testCases.length:', testCases ? testCases.length : 'NO DEFINIDO');
-    console.log('📊 filteredCases.length:', filteredCases ? filteredCases.length : 'NO DEFINIDO');
-    console.log('📊 currentEditingId:', currentEditingId);
-    console.log('📊 renderTestCases disponible:', typeof window.renderTestCases);
-    console.log('📊 updateStats disponible:', typeof window.updateStats);
-    console.log('📊 updateFilters disponible:', typeof window.updateFilters);
-    console.log('📊 applyFilters disponible:', typeof window.applyFilters);
-    console.log('📊 updateStatusAndDate disponible:', typeof window.updateStatusAndDate);
-    console.log('📊 saveToStorage disponible:', typeof window.saveToStorage);
-    console.log('📊 saveMulticaseData disponible:', typeof window.saveMulticaseData);
-    console.log('📊 syncScenariosWithCurrentCase disponible:', typeof window.syncScenariosWithCurrentCase);
-    
-    // Verificar elementos del DOM
+    // Diagnóstico de la aplicación (solo para desarrollo)
     const testCasesBody = document.getElementById('testCasesBody');
     const totalCases = document.getElementById('totalCases');
     const okCases = document.getElementById('okCases');
     const noCases = document.getElementById('noCases');
-    
-    console.log('📊 testCasesBody existe:', !!testCasesBody);
-    console.log('📊 totalCases existe:', !!totalCases);
-    console.log('📊 okCases existe:', !!okCases);
-    console.log('📊 noCases existe:', !!noCases);
+    // okCases y noCases verificados
     
     return {
         testCasesLength: testCases ? testCases.length : 0,

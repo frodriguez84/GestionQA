@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-cache-bust="20250112f">
 
 <head>
     <meta charset="UTF-8">
@@ -35,6 +35,12 @@
                 </button>
                 <button class="btn btn-secondary" id="btnGenerateReport">
                     📊 Generar Reporte
+                </button>
+                <button class="btn btn-info" id="btnForceUpdate" onclick="forceUpdateApp()">
+                    🔄 Forzar Update
+                </button>
+                <button class="btn btn-success" id="btnCheckUpdates" onclick="checkUpdatesFallback()">
+                    🔍 Verificar Actualizaciones
                 </button>
                 <!-- Botones de importar/exportar ocultos por ahora -->
                 <button class="btn btn-secondary" id="btnExportProject" style="display: none;">
@@ -297,17 +303,82 @@
     <!-- UI -->
     <script src="js/ui/toast-system.js?v=20250111b"></script>
     
+    <!-- UPDATE SYSTEM (Automatic updates) -->
+    <script src="js/version-manager.js?v=20250112a"></script>
+    <script src="js/update-manager.js?v=20250112d"></script>
+    
     <!-- DASHBOARD -->
     <script src="js/dashboard/dashboard-theme.js?v=20250110a"></script>
     <script src="js/dashboard/dashboard-storage.js?v=20250110a"></script>
-    <script src="js/dashboard/dashboard-core.js?v=20250111f"></script>
-    <script src="js/dashboard/dashboard-ui.js?v=20250111i"></script>
+    <script src="js/dashboard/dashboard-core.js?v=20250112g"></script>
+    <script src="js/dashboard/dashboard-ui.js?v=20250112d"></script>
     
     <!-- CORE -->
-    <script src="js/core/sync-manager.js?v=20250110b"></script>
+    <script src="js/core/sync-manager.js?v=20250112a"></script>
+    <script src="js/core/bugfixing-timers.js?v=20250112b"></script>
     
     <!-- LEGACY -->
     <script src="js/legacy/data-migration.js?v=20250110a"></script>
+
+    <!-- Footer con información de versión -->
+    <footer class="app-footer">
+        <div class="version-info">
+            <div id="version-display" class="version-display"></div>
+        </div>
+    </footer>
+
+    <style>
+        .app-footer {
+            background: linear-gradient(135deg, #1e293b, #334155);
+            border-top: 1px solid #475569;
+            padding: 8px 16px;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+            margin-top: auto;
+        }
+
+        .version-info {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .version-display {
+            font-size: 12px;
+            color: #94a3b8;
+            text-align: center;
+            font-family: 'Segoe UI', sans-serif;
+        }
+
+        .version-display .version-info {
+            margin: 0;
+            padding: 2px 8px;
+            background: rgba(148, 163, 184, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+
+        /* Dark mode support */
+        [data-theme="dark"] .app-footer {
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            border-top-color: #334155;
+        }
+
+        [data-theme="dark"] .version-display {
+            color: #64748b;
+        }
+
+        [data-theme="dark"] .version-display .version-info {
+            background: rgba(100, 116, 139, 0.1);
+            border-color: rgba(100, 116, 139, 0.2);
+        }
+
+        /* Ajustar el contenido principal para que no se superponga con el footer */
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
 </body>
 
 </html>

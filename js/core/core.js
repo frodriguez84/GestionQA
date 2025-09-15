@@ -345,13 +345,21 @@ function initializeApp() {
         // console.log('🧹 ID de requerimiento activo limpiado');
     } else {
         // console.log('📂 No hay requerimiento activo, cargando datos existentes...');
-        // 🎯 PASO 2: Cargar datos multicaso existentes
-        const loaded = loadMulticaseData();
-
-        if (!loaded) {
-            // Si no hay datos multicaso, crear uno vacío
-            // console.log('🆕 Creando nuevo requerimiento multicaso...');
-            enableMulticaseMode();
+        // 🎯 PASO 2: Cargar datos usando persistencia unificada
+        if (typeof window.GestorCP !== 'undefined' && window.GestorCP.Storage) {
+            // Cargando datos con persistencia unificada...
+            const loaded = window.GestorCP.Storage.load();
+            
+            if (!loaded) {
+                // La estructura inicial se crea automáticamente en load()
+            }
+        } else if (typeof loadMulticaseData === 'function') {
+            // Fallback al sistema anterior si no está disponible el unificado
+            const loaded = loadMulticaseData();
+            
+            if (!loaded) {
+                enableMulticaseMode();
+            }
         }
     }
     
@@ -368,14 +376,20 @@ function initializeApp() {
         console.error('❌ Error: Se intentó cargar requerimiento pero no se estableció');
     }
 
-    // 🎯 PASO 3: Inicializar proxies legacy (compatibilidad)
-    if (typeof initializeLegacyProxies === 'function') {
-        initializeLegacyProxies();
+    // 🎯 PASO 3: Inicializar sistema unificado de datos
+    if (typeof window.GestorCP !== 'undefined' && window.GestorCP.Data) {
+        window.GestorCP.Data.initialize();
+        // Sistema unificado inicializado
     }
 
-    // 🎯 PASO 4: Sincronizar datos legacy si existen
-    if (typeof syncLegacyToMulticase === 'function') {
-        syncLegacyToMulticase();
+    // 🎯 PASO 4: Migrar datos legacy al sistema unificado
+    if (typeof migrateLegacyToUnified === 'function') {
+        const migrationSuccess = migrateLegacyToUnified();
+        if (!migrationSuccess) {
+            if (typeof restoreArchitectureBackup === 'function') {
+                restoreArchitectureBackup();
+            }
+        }
     }
 
     // 🎯 PASO 3: Configurar event listeners esenciales SOLO para multicaso

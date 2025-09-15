@@ -702,7 +702,7 @@ function debounce(func, wait) {
  * Inicializa la interfaz de usuario
  */
 function initializeDashboardUI() {
-    console.log('🎨 Inicializando Dashboard UI...');
+    // Inicializando Dashboard UI...
     
     // Ejecutar migración si es necesaria
     if (typeof runMigrationIfNeeded === 'function') {
@@ -718,7 +718,7 @@ function initializeDashboardUI() {
     // CRÍTICO: Configurar actualización automática de estadísticas
     setupStatsAutoUpdate();
     
-    console.log('✅ Dashboard UI inicializado');
+    // Dashboard UI inicializado
 }
 
 /**
@@ -946,12 +946,8 @@ function updateDetailedView(requirements) {
  * Configura actualización automática de estadísticas
  */
 function setupStatsAutoUpdate() {
-    console.log('🔄 Configurando actualización automática de estadísticas...');
-    
-    // Actualizar estadísticas cada 10 segundos (menos agresivo)
+    // Actualizar estadísticas cada 5 segundos (más frecuente para timers)
     setInterval(() => {
-        console.log('🔄 Actualizando estadísticas automáticamente...');
-        
         // Solo actualizar datos, NO refrescar la interfaz completa
         if (typeof syncFromAppToDashboard === 'function') {
             syncFromAppToDashboard();
@@ -962,7 +958,7 @@ function setupStatsAutoUpdate() {
             updateAllRequirementsStats();
             updateStatsOnly(); // Solo actualizar estadísticas, no la interfaz completa
         }
-    }, 10000); // Cambiado de 2 segundos a 10 segundos
+    }, 5000); // Cambiado a 5 segundos para mejor seguimiento de timers
     
     // Actualizar estadísticas cuando la página se vuelve visible (INMEDIATO)
     document.addEventListener('visibilitychange', () => {
@@ -998,7 +994,7 @@ function setupStatsAutoUpdate() {
         }
     });
     
-    console.log('✅ Actualización automática de estadísticas configurada');
+    // Actualización automática de estadísticas configurada
 }
 
 // ===============================================
@@ -1018,6 +1014,28 @@ window.editRequirement = editRequirement;
 window.deleteRequirementConfirm = deleteRequirementConfirm;
 window.initializeDashboardUI = initializeDashboardUI;
 window.setupStatsAutoUpdate = setupStatsAutoUpdate;
+
+// 🆕 FUNCIÓN PARA FORZAR ACTUALIZACIÓN MANUAL DEL DASHBOARD
+window.forceDashboardUpdate = function() {
+    console.log('🔄 Forzando actualización completa del dashboard...');
+    
+    // Sincronizar desde la app
+    if (typeof syncFromAppToDashboard === 'function') {
+        syncFromAppToDashboard();
+    }
+    
+    // Actualizar estadísticas
+    if (typeof updateAllRequirementsStats === 'function') {
+        updateAllRequirementsStats();
+    }
+    
+    // Actualizar interfaz
+    if (typeof updateDashboard === 'function') {
+        updateDashboard();
+    }
+    
+    console.log('✅ Dashboard actualizado manualmente');
+};
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', initializeDashboardUI);

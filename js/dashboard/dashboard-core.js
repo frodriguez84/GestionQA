@@ -389,8 +389,6 @@ function calculateRealStatsFromCases(requirement) {
  * Actualiza las estadísticas de TODOS los requerimientos
  */
 function updateAllRequirementsStats() {
-    console.log('🔄 Actualizando estadísticas de todos los requerimientos...');
-    
     requirementsList.forEach(requirement => {
         updateRequirementStats(requirement.id);
     });
@@ -418,63 +416,31 @@ function navigateToRequirement(requirementId) {
  * Sincroniza datos desde la app al dashboard (llamada cuando se regresa al dashboard)
  */
 function syncFromAppToDashboard() {
-    console.log('🔄 Sincronizando datos desde la app al dashboard...');
-    
     try {
         // Obtener datos de la app
         const appData = localStorage.getItem('multicaseData');
-        /* console.log('🔍 DEBUG - appData raw:', appData ? 'Existe' : 'No existe'); */
         
         if (!appData) {
-            console.log('ℹ️ No hay datos de la app para sincronizar');
             return false;
         }
         
         // Descomprimir datos si están comprimidos
         const data = typeof decompressData === 'function' ? decompressData(appData) : JSON.parse(appData);
-        /* console.log('🔍 DEBUG - appData parsed:', data); */
         
         if (!data.currentRequirement) {
-            console.log('ℹ️ No hay requerimiento activo en la app');
             return false;
         }
         
         const appRequirement = data.currentRequirement;
-        console.log('📱 Requerimiento de la app:', appRequirement.info?.name);
-        console.log('📱 Casos en la app:', appRequirement.cases?.length || 0);
-        
-        if (appRequirement.cases && appRequirement.cases.length > 0) {
-            const firstCase = appRequirement.cases[0];
-            console.log('📱 Primer caso en la app:', firstCase.title || 'Sin título');
-            console.log('📱 Escenarios en primer caso:', firstCase.scenarios?.length || 0);
-        }
         
         // Buscar el requerimiento en el dashboard
         const dashboardRequirement = requirementsList.find(req => req.id === appRequirement.id);
         if (!dashboardRequirement) {
-            console.log('⚠️ Requerimiento no encontrado en dashboard');
-            console.log('🔍 DEBUG - IDs disponibles en dashboard:', requirementsList.map(r => r.id));
             return false;
         }
         
-        console.log('📊 Casos en dashboard ANTES:', dashboardRequirement.cases?.length || 0);
-        
         // 🆕 SINCRONIZAR DATOS NOMINALES DEL REQUERIMIENTO
         if (appRequirement.info) {
-            console.log('🔄 Sincronizando datos nominales del requerimiento...');
-            console.log('🔄 ANTES - Dashboard:', {
-                name: dashboardRequirement.name,
-                number: dashboardRequirement.number,
-                tester: dashboardRequirement.tester,
-                description: dashboardRequirement.description
-            });
-            console.log('🔄 ANTES - App:', {
-                name: appRequirement.info.name,
-                number: appRequirement.info.number,
-                tester: appRequirement.info.tester,
-                description: appRequirement.info.description
-            });
-            
             // Actualizar datos nominales
             dashboardRequirement.name = appRequirement.info.name || dashboardRequirement.name;
             dashboardRequirement.number = appRequirement.info.number || dashboardRequirement.number;
@@ -484,19 +450,10 @@ function syncFromAppToDashboard() {
             dashboardRequirement.status = appRequirement.info.status || dashboardRequirement.status;
             dashboardRequirement.priority = appRequirement.info.priority || dashboardRequirement.priority;
             dashboardRequirement.updatedAt = new Date().toISOString();
-            
-            console.log('🔄 DESPUÉS - Dashboard:', {
-                name: dashboardRequirement.name,
-                number: dashboardRequirement.number,
-                tester: dashboardRequirement.tester,
-                description: dashboardRequirement.description
-            });
         }
         
         // Sincronizar casos y escenarios
         dashboardRequirement.cases = appRequirement.cases || [];
-        
-        console.log('📊 Casos en dashboard DESPUÉS:', dashboardRequirement.cases?.length || 0);
         
         // Actualizar estadísticas
         updateRequirementStats(appRequirement.id);
@@ -504,7 +461,6 @@ function syncFromAppToDashboard() {
         // Guardar cambios
         saveRequirements();
         
-        console.log('✅ Datos sincronizados desde la app al dashboard');
         return true;
         
     } catch (error) {
@@ -637,7 +593,7 @@ function createSampleRequirements() {
  * Inicializa el dashboard
  */
 function initializeDashboard() {
-    console.log('🚀 Inicializando Dashboard...');
+    // Inicializando Dashboard...
     
     // Cargar datos
     loadRequirements();
@@ -679,7 +635,7 @@ function initializeDashboard() {
         updateDashboard();
     }
     
-    console.log('✅ Dashboard inicializado');
+    // Dashboard inicializado
 }
 
 // ===============================================
