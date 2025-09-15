@@ -1,6 +1,8 @@
 // ===============================================
 // MULTICASE-CORE.JS - Sistema Multicaso CORREGIDO
+// VERSIÓN: 20250112g - CON FUNCIONES EXPUESTAS
 // ===============================================
+
 
 // ===============================================
 // NUEVA ESTRUCTURA DE DATOS JERÁRQUICA
@@ -128,7 +130,7 @@ function migrateToMulticase() {
         newRequirement.cases.push(defaultCase);
 
         // Calcular estadísticas
-        updateRequirementStats(newRequirement);
+        updateMulticaseRequirementStats(newRequirement);
 
         // Establecer como requerimiento actual
         currentRequirement = newRequirement;
@@ -173,8 +175,15 @@ function updateCaseStats(caseObj) {
 /**
  * Actualiza las estadísticas del requerimiento completo
  */
-function updateRequirementStats(requirement) {
-    if (!requirement || !requirement.cases) return;
+function updateMulticaseRequirementStats(requirement) {
+    if (!requirement || !requirement.cases) {
+        return;
+    }
+
+    // Sincronizar window.currentRequirement
+    if (typeof window !== 'undefined') {
+        window.currentRequirement = requirement;
+    }
 
     // Actualizar stats de cada caso primero
     requirement.cases.forEach(updateCaseStats);
@@ -182,6 +191,7 @@ function updateRequirementStats(requirement) {
     // Calcular stats consolidadas
     const allScenarios = requirement.cases.flatMap(c => c.scenarios || []);
     const allCycles = [...new Set(allScenarios.map(s => s.cycleNumber).filter(c => c))];
+
 
     requirement.stats = {
         totalCases: requirement.cases.length,
@@ -198,6 +208,13 @@ function updateRequirementStats(requirement) {
         Math.round((requirement.stats.totalOK / requirement.stats.totalScenarios) * 100) : 0;
 
     requirement.updatedAt = new Date().toISOString();
+    
+    // Actualizar header después de calcular estadísticas
+    setTimeout(() => {
+        if (typeof createRequirementHeader === 'function') {
+            createRequirementHeader();
+        }
+    }, 50);
 }
 
 // ===============================================
@@ -228,7 +245,7 @@ function addNewCase(title, objective, caseNumber = "") {
         // console.log('🔍 DEBUG addNewCase - window.currentRequirement.cases.length:', window.currentRequirement.cases.length);
     }
 
-    updateRequirementStats(currentRequirement);
+    updateMulticaseRequirementStats(currentRequirement);
     saveMulticaseData();
 
     // CRÍTICO: Sincronizar con dashboard después de crear caso
@@ -268,7 +285,7 @@ function deleteCase(caseId) {
     }
 
     currentRequirement.cases.splice(caseIndex, 1);
-    updateRequirementStats(currentRequirement);
+    updateMulticaseRequirementStats(currentRequirement);
     saveMulticaseData();
 
     return true;
@@ -385,15 +402,21 @@ function switchToCase(caseId) {
 
     // 🎯 PASO 5: Guardar cambios inmediatamente
     updateCaseStats(targetCase);
-    updateRequirementStats(currentRequirement);
+    updateMulticaseRequirementStats(currentRequirement);
     saveMulticaseData();
 
-    // 🎯 PASO 6: Actualizar filtros después de cambiar caso
+    // 🎯 PASO 6: Actualizar UI después de cambiar caso
     setTimeout(() => {
         if (typeof updateFilters === 'function') {
             updateFilters();
-            // console.log('✅ Filtros actualizados después de cambiar caso');
         }
+        if (typeof updateAppStats === 'function') {
+            updateAppStats();
+        }
+        if (typeof renderTestCases === 'function') {
+            renderTestCases();
+        }
+        // console.log('✅ UI actualizada después de cambiar caso');
     }, 100);
 
     // console.log('✅ Cambiado al caso:', targetCase.title);
@@ -465,7 +488,7 @@ function saveMulticaseData() {
         }
 
         // Actualizar estadísticas antes de guardar
-        updateRequirementStats(currentRequirement);
+        updateMulticaseRequirementStats(currentRequirement);
 
         // Crear copia para verificación
         const dataToSave = JSON.stringify(currentRequirement);
@@ -637,6 +660,17 @@ function loadMulticaseData() {
                 if (typeof restoreBugfixingTimers === 'function') {
                     restoreBugfixingTimers();
                 }
+                
+                // Actualizar estadísticas y UI
+                if (typeof updateAppStats === 'function') {
+                    updateAppStats();
+                }
+                if (typeof renderTestCases === 'function') {
+                    renderTestCases();
+                }
+                if (typeof updateFilters === 'function') {
+                    updateFilters();
+                }
             }, 100);
 
             return true;
@@ -802,7 +836,7 @@ function syncScenariosWithCurrentCase() {
 
     // Actualizar estadísticas
     updateCaseStats(currentCase);
-    updateRequirementStats(currentRequirement);
+    updateMulticaseRequirementStats(currentRequirement);
 
     /* console.log('✅ Sincronización ULTRA-ROBUSTA completada');
     console.log(`📊 Resultado: ${currentCase.scenarios.length} escenarios en caso actual`); */
@@ -849,7 +883,10 @@ window.getMulticaseStats = getMulticaseStats;
 window.syncRequirementData = syncRequirementData;
 window.syncScenariosWithCurrentCase = syncScenariosWithCurrentCase;
 window.saveAndSync = saveAndSync;
+window.updateMulticaseRequirementStats = updateMulticaseRequirementStats; // ¡FUNCION RENOMBRADA PARA EVITAR CONFLICTO!
+window.createEmptyRequirement = createEmptyRequirement; // ¡FALTABA ESTA TAMBIÉN!
 window.debugDataIntegrity = window.debugDataIntegrity;
+
 
 // Debug functions
 window.debugMulticase = function () {
@@ -1019,4 +1056,5 @@ window.debugStates = function () {
 // Exportar función de inicialización
 window.initializeMulticaseSystem = initializeMulticaseSystem;
 window.hasActiveRequirement = hasActiveRequirement;
+window.updateMulticaseRequirementStats = updateMulticaseRequirementStats;
 

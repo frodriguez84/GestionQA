@@ -276,7 +276,7 @@ function openReportPreview() {
         // CRÍTICO: Verificar que tenemos datos del requerimiento
         const req = __getRequirementSafe();
         if (!req) {
-            alert('⚠️ No se encontró información del requerimiento para generar el reporte');
+            alert('⚠️ No se encontró información del requerimiento para generar reporte');
             return;
         }
 
@@ -303,9 +303,16 @@ function openReportPreview() {
             clone.addEventListener('click', generateReportPDF);
         }
 
+        // Resetear completamente el estado del modal
         modalElement.style.display = 'block';
+        modalElement.style.visibility = 'visible';
+        modalElement.classList.add('show');
+        modalElement.removeAttribute('aria-hidden');
+        
+        // Forzar reflow
+        modalElement.offsetHeight;
     } catch (error) {
-        console.error('Error generando reporte:', error);
+        console.error('❌ Error generando reporte:', error);
         alert('❌ Error al generar el reporte: ' + error.message);
     }
 }
@@ -313,7 +320,17 @@ function openReportPreview() {
 
 // Cerrar modal de reporte
 function closeReportModal() {
-    document.getElementById('reportPreviewModal').style.display = 'none';
+    const modal = document.getElementById('reportPreviewModal');
+    if (modal) {
+        // Múltiples métodos para asegurar el cierre
+        modal.style.display = 'none';
+        modal.style.visibility = 'hidden';
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+        
+        // Forzar reflow
+        modal.offsetHeight;
+    }
 }
 
 // ===============================================
@@ -746,7 +763,14 @@ function openGlobalReportPreview() {
             clone.addEventListener('click', generateGlobalReportPDF);
         }
 
+        // Resetear completamente el estado del modal
         modal.style.display = 'block';
+        modal.style.visibility = 'visible';
+        modal.classList.add('show');
+        modal.removeAttribute('aria-hidden');
+        
+        // Forzar reflow
+        modal.offsetHeight;
     } catch (e) {
         console.error('Error abriendo reporte global:', e);
         alert('❌ Error al generar el reporte global');
@@ -925,11 +949,31 @@ document.addEventListener('DOMContentLoaded', function () {
 // EXPONER FUNCIONES GLOBALMENTE
 // ===============================================
 
-
 window.generateReportPDF = generateReportPDF;
+window.closeReportModal = closeReportModal;
+window.openReportPreview = openReportPreview;
 window.getReportMetrics = getReportMetrics;
 window.openGlobalReportPreview = openGlobalReportPreview;
 window.generateGlobalReportPDF = generateGlobalReportPDF;
+
+// Función de respaldo específica para cerrar modales de reportes
+window.closeReportModalSafe = function() {
+    const modal = document.getElementById('reportPreviewModal');
+    if (modal) {
+        modal.style.display = 'none';
+        modal.style.visibility = 'hidden';
+        modal.classList.remove('show');
+        modal.setAttribute('aria-hidden', 'true');
+        modal.offsetHeight; // Forzar reflow
+    }
+};
+
+// Event listener para cerrar modal con tecla ESC
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeReportModalSafe();
+    }
+});
 
 
 

@@ -35,11 +35,16 @@ function preserveBugfixingTimers(appCases, dashboardCases) {
 }
 
 // ===============================================
-// VARIABLES GLOBALES
+// VARIABLES GLOBALES - OPTIMIZADAS
 // ===============================================
 
-let syncInProgress = false;
-let lastSyncTime = null;
+// Usar el estado global centralizado
+const syncState = {
+    inProgress: false,
+    lastSyncTime: null,
+    retryCount: 0,
+    maxRetries: 3
+};
 
 // ===============================================
 // FUNCIONES DE SINCRONIZACIÓN
@@ -244,13 +249,13 @@ function syncDashboardToApp(requirementId) {
  * Sincroniza datos de la app con el dashboard
  */
 function syncAppToDashboard() {
-    if (syncInProgress) {
+    if (syncState.inProgress) {
         console.log('⏳ Sincronización ya en progreso...');
         return;
     }
     
     try {
-        syncInProgress = true;
+        syncState.inProgress = true;
         console.log('🔄 Sincronizando app → dashboard...');
         
         if (!window.currentRequirement) {
@@ -426,7 +431,7 @@ function syncAppToDashboard() {
         console.error('❌ Error sincronizando app → dashboard:', error);
         return false;
     } finally {
-        syncInProgress = false;
+        syncState.inProgress = false;
     }
 }
 
@@ -763,8 +768,8 @@ function hasDataToSync() {
  */
 function getSyncStatus() {
     return {
-        inProgress: syncInProgress,
-        lastSync: lastSyncTime,
+        inProgress: syncState.inProgress,
+        lastSync: syncState.lastSyncTime,
         hasData: hasDataToSync()
     };
 }

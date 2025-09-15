@@ -522,11 +522,11 @@
     </div>
 
     <!-- Modal para Vista Previa del Reporte -->
-    <div id="reportPreviewModal" class="modal">
+    <div id="reportPreviewModal" class="modal" onclick="if(event.target===this) closeReportModal()">
         <div class="modal-content" style="max-width: 900px; max-height: 90vh;">
             <div class="modal-header">
                 <h2>📊 Vista Previa del Reporte del Caso</h2>
-                <span class="close" id="closeReportModalBtn">&times;</span>
+                <span class="close" id="closeReportModalBtn" onclick="closeReportModal(); closeReportModalSafe();">&times;</span>
             </div>
             <div id="reportPreviewContent"
                 style="font-family: 'Courier New', monospace; white-space: pre-line; padding: 20px; background: #f8f9fa; border-radius: 8px; overflow-y: auto; max-height: 60vh; line-height: 1.4;">
@@ -534,7 +534,7 @@
             </div>
             <div class="controls" style="margin-top: 20px;">
                 <button class="btn btn-success" id="btnDownloadPDF">📄 Descargar PDF</button>
-                <button class="btn" id="btnCancelReport">❌ Cerrar</button>
+                <button class="btn" id="btnCancelReport" onclick="closeReportModal(); closeReportModalSafe();">❌ Cerrar</button>
             </div>
         </div>
     </div>
@@ -548,20 +548,52 @@
     <script src="js/compression-utils.js?v=20250111b"></script>
     
     <!-- Scripts principales - ORDEN CORRECTO PARA MULTICASO -->
-    <script src="js/core.js?v=20250111j"></script>
-    <script src="js/multicase-core.js?v=20250111h"></script>
-    <script src="js/legacy-adapter.js?v=20250111b"></script>
-    <script src="js/sync-manager.js?v=20250111o"></script>
-    <script src="js/multicase-ui.js?v=20250111e"></script>
-    <script src="js/ui.js?v=20250111e"></script>
-    <script src="js/cases.js?v=20250111o"></script>
-    <script src="js/timers.js?v=20250111u"></script>
+    
+    <!-- UTILITIES (Base) -->
+    <script src="js/utils/utils.js?v=20250111a"></script>
+    <script src="js/utils/global-state.js?v=20250111a"></script>
+    <script src="js/utils/config.js?v=20250111a"></script>
+    <script src="js/utils/compression-utils.js?v=20250111b"></script>
+    
+    <!-- OPTIMIZATION (Performance) -->
+    <script src="js/optimization/event-system.js?v=20250111a"></script>
+    <script src="js/optimization/lazy-loader.js?v=20250111a"></script>
+    <script src="js/optimization/search-optimizer.js?v=20250111a"></script>
+    <script src="js/optimization/smart-cache.js?v=20250111a"></script>
+    <script src="js/optimization/dom-optimizer.js?v=20250111a"></script>
+    <script src="js/optimization/input-optimizer.js?v=20250111a"></script>
+    <script src="js/optimization/virtual-scroll.js?v=20250111a"></script>
+    
+    <!-- CORE (Core functionality) -->
+    <script src="js/core/core.js?v=20250111q"></script>
+    <script src="js/core/multicase-core.js?v=20250112j"></script>
+    <script src="js/core/sync-manager.js?v=20250111o"></script>
+    <script src="js/core/timers.js?v=20250111u"></script>
+    <script src="js/core/bugfixing-timers.js?v=20250111a"></script>
+    
+    <!-- LEGACY (Migration) -->
+    <script src="js/legacy/legacy-cleanup.js?v=20250111a"></script>
+    <script src="js/legacy/legacy-adapter.js?v=20250111c"></script>
+    <script src="js/legacy/data-migration.js?v=20250111a"></script>
+    
+    <!-- UI (User Interface) -->
+    <script src="js/ui/multicase-ui.js?v=20250112i"></script>
+    <script src="js/ui/ui.js?v=20250111k"></script>
+    <script src="js/ui/cases.js?v=20250112h"></script>
+    <script src="js/ui/toast-system.js?v=20250111b"></script>
+    
+    <!-- FEATURES (Additional features) - MOVED HERE TO LOAD AFTER CASES -->
     <script src="js/bulk.js?v=20250111e"></script>
-    <script src="js/dragdrop.js?v=20250111c"></script>
+    <script src="js/dragdrop.js?v=20250111e"></script>
     <script src="js/exportImport.js?v=20250111e"></script>
-    <script src="js/reports.js?v=20250110a"></script>
-    <script src="js/toast-system.js?v=20250111b"></script>
-    <script src="js/multicase-ui.js?v=20250111c"></script>
+    <script src="js/reports.js?v=20250112f"></script>
+    
+    <!-- DASHBOARD (Dashboard functionality) -->
+    <script src="js/dashboard/dashboard-core.js?v=20250112a"></script>
+    <script src="js/dashboard/dashboard-ui.js?v=20250112a"></script>
+    <script src="js/dashboard/dashboard-storage.js?v=20250111e"></script>
+    <script src="js/dashboard/dashboard-theme.js?v=20250111e"></script>
+    
 
     <!-- Librerías externas -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>

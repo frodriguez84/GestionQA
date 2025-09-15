@@ -200,51 +200,99 @@ function initializeLegacyProxies() {
  * Sincroniza datos legacy con multicaso (una sola vez)
  */
 function syncLegacyToMulticase() {
-    if (!currentRequirement) {
-        console.log('⚠️ No hay requerimiento multicaso activo');
-        return;
-    }
+    console.log('🔄 Migrando completamente del sistema legacy al multicaso...');
     
-    // console.log('🔄 Sincronizando datos legacy con multicaso...');
-    
-    // Si hay datos legacy en localStorage, migrarlos
+    // Verificar si hay datos legacy
     const legacyTestCases = localStorage.getItem('testCases');
     const legacyRequirementInfo = localStorage.getItem('requirementInfo');
     const legacyInputVariableNames = localStorage.getItem('inputVariableNames');
     
-    if (legacyTestCases || legacyRequirementInfo || legacyInputVariableNames) {
-        // console.log('📦 Datos legacy encontrados, migrando...');
+    if (!legacyTestCases && !legacyRequirementInfo && !legacyInputVariableNames) {
+        console.log('✅ No hay datos legacy para migrar');
+        return;
+    }
+    
+    console.log('📦 Datos legacy encontrados, migrando completamente...');
+    
+    // Crear requerimiento desde datos legacy si no existe uno activo
+    if (!currentRequirement) {
+        const newRequirement = {
+            id: 'req_' + Date.now() + '_legacy_migration',
+            info: {
+                name: 'Requerimiento Migrado',
+                description: 'Migrado desde sistema legacy',
+                created: new Date().toISOString()
+            },
+            cases: [],
+            _fromLegacy: true
+        };
         
-        // CRÍTICO: Solo migrar si el requerimiento actual NO viene del dashboard
-        const isFromDashboard = currentRequirement._fromDashboard === true;
+        // Crear caso desde datos legacy
+        const newCase = {
+            id: 'case_' + Date.now() + '_legacy_migration',
+            caseNumber: 1,
+            title: 'Caso Principal',
+            objective: 'Caso migrado desde sistema legacy',
+            inputVariableNames: [],
+            scenarios: []
+        };
         
-        if (isFromDashboard) {
-            // console.log('⚠️ Requerimiento viene del dashboard, NO migrando datos legacy');
-            // console.log('🧹 Limpiando datos legacy sin migrar...');
-            
-            // 🎯 CRÍTICO: NO borrar 'testCases' porque contiene timers de bugfixing
-            // localStorage.removeItem('testCases'); // COMENTADO - contiene timers de bugfixing
-            localStorage.removeItem('requirementInfo');
-            localStorage.removeItem('inputVariableNames');
-            
-            // console.log('✅ Datos legacy limpiados (sin migración) - testCases preservado');
-            return;
-        }
-        
-        // Migrar requirementInfo solo si no viene del dashboard
+        // Migrar datos (usando descompresión automática)
         if (legacyRequirementInfo) {
             try {
-                const reqInfo = JSON.parse(legacyRequirementInfo);
+                const reqInfo = decompressData(legacyRequirementInfo);
+                newRequirement.info = { ...newRequirement.info, ...reqInfo };
+                console.log('✅ requirementInfo migrado');
+            } catch (e) {
+                console.error('Error migrando requirementInfo:', e);
+            }
+        }
+        
+        if (legacyInputVariableNames) {
+            try {
+                newCase.inputVariableNames = decompressData(legacyInputVariableNames);
+                console.log('✅ inputVariableNames migrados');
+            } catch (e) {
+                console.error('Error migrando inputVariableNames:', e);
+            }
+        }
+        
+        if (legacyTestCases) {
+            try {
+                newCase.scenarios = decompressData(legacyTestCases);
+                console.log('✅ testCases migrados:', newCase.scenarios.length, 'escenarios');
+            } catch (e) {
+                console.error('Error migrando testCases:', e);
+            }
+        }
+        
+        newRequirement.cases.push(newCase);
+        
+        // Establecer como requerimiento actual
+        window.currentRequirement = newRequirement;
+        window.currentCaseId = newCase.id;
+        
+        // Guardar en sistema multicaso
+        if (typeof saveMulticaseData === 'function') {
+            saveMulticaseData();
+            console.log('✅ Requerimiento guardado en sistema multicaso');
+        }
+    } else {
+        // Si ya hay un requerimiento activo, migrar a él
+        console.log('⚠️ Ya hay requerimiento activo, migrando datos a él...');
+        
+        if (legacyRequirementInfo) {
+            try {
+                const reqInfo = decompressData(legacyRequirementInfo);
                 currentRequirement.info = { ...currentRequirement.info, ...reqInfo };
             } catch (e) {
                 console.error('Error migrando requirementInfo:', e);
             }
         }
         
-        // Migrar testCases al caso activo
-        if (legacyTestCases && currentCaseId) {
+        if (legacyTestCases) {
             try {
-                const testCases = JSON.parse(legacyTestCases);
+                const testCases = decompressData(legacyTestCases);
                 const currentCase = currentRequirement.cases.find(c => c.id === currentCaseId);
                 if (currentCase) {
                     currentCase.scenarios = [...testCases];
@@ -255,10 +303,9 @@ function syncLegacyToMulticase() {
             }
         }
         
-        // Migrar inputVariableNames
-        if (legacyInputVariableNames && currentCaseId) {
+        if (legacyInputVariableNames) {
             try {
-                const varNames = JSON.parse(legacyInputVariableNames);
+                const varNames = decompressData(legacyInputVariableNames);
                 const currentCase = currentRequirement.cases.find(c => c.id === currentCaseId);
                 if (currentCase) {
                     currentCase.inputVariableNames = [...varNames];
@@ -268,16 +315,18 @@ function syncLegacyToMulticase() {
             }
         }
         
-        // Guardar cambios
         saveMulticaseData();
-        
-        // Limpiar datos legacy
-        localStorage.removeItem('testCases');
-        localStorage.removeItem('requirementInfo');
-        localStorage.removeItem('inputVariableNames');
-        
-        console.log('✅ Migración completada, datos legacy eliminados');
     }
+    
+    // ELIMINAR COMPLETAMENTE datos legacy
+    localStorage.removeItem('testCases');
+    localStorage.removeItem('requirementInfo');
+    localStorage.removeItem('inputVariableNames');
+    
+    // Marcar que el sistema legacy está completamente migrado
+    localStorage.setItem('legacyMigrationComplete', 'true');
+    
+    console.log('✅ Migración completa finalizada, sistema legacy eliminado');
 }
 
 // ===============================================

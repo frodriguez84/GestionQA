@@ -1,32 +1,10 @@
 // ===============================================
 // MULTICASE-UI.JS - Interfaz de Usuario Multicaso
+// VERSIÓN: 20250112g - CON DEBUG MEJORADO
 // ===============================================
 
-/**
- * Función temporal para formatear fechas (hasta que cases.js se cargue)
- */
-function formatDateForDisplay(dateString) {
-    if (!dateString || dateString.trim() === '') return '';
-    
-    try {
-        // Si ya está en formato dd-mm-aaaa, devolverlo tal como está
-        if (dateString.includes('/') || (dateString.includes('-') && dateString.split('-')[0].length === 2)) {
-            return dateString;
-        }
-        
-        // Convertir de yyyy-mm-dd a dd-mm-aaaa
-        if (dateString.includes('-') && dateString.length === 10) {
-            const parts = dateString.split('-');
-            if (parts.length === 3) {
-                return `${parts[2]}-${parts[1]}-${parts[0]}`;
-            }
-        }
-        
-        return dateString;
-    } catch (e) {
-        return dateString;
-    }
-}
+
+// Función formatDateForDisplay movida a utils.js
 
 // ===============================================
 // FUNCIONES DE INTEGRACIÓN CON DASHBOARD
@@ -156,12 +134,6 @@ function goToDashboard() {
  * Crea y actualiza el header principal del requerimiento (MEJORADO)
  */
 function createRequirementHeader() {
-    /* console.log('🎨 Creando header del requerimiento...'); */
-    /* console.log('📊 Estado actual:', {
-        hasActiveRequirement: hasActiveRequirement(),
-        currentRequirement: currentRequirement ? 'Existe' : 'No existe',
-        multicaseMode: multicaseMode
-    }); */
     
     if (!hasActiveRequirement()) {
         console.log('⚠️ No hay requerimiento activo, ocultando header');
@@ -201,8 +173,24 @@ function createRequirementHeader() {
     const requirement = currentRequirement;
     if (!requirement) return;
 
-    const stats = requirement.stats || { totalCases: 0, totalScenarios: 0, totalHours: 0, successRate: 0 };
+    let stats = requirement.stats || { totalCases: 0, totalScenarios: 0, totalHours: 0, successRate: 0 };
     const currentCase = getCurrentCase();
+    
+    
+    // Forzar actualización de estadísticas si están en 0
+    if (stats.totalCases === 0 && stats.totalScenarios === 0) {
+        if (typeof window.updateMulticaseRequirementStats === 'function') {
+            try {
+                window.updateMulticaseRequirementStats(requirement);
+                // Recargar stats después de actualizar
+                stats = requirement.stats || { totalCases: 0, totalScenarios: 0, totalHours: 0, successRate: 0 };
+            } catch (error) {
+                console.error('❌ Error ejecutando updateRequirementStats:', error);
+            }
+        } else {
+            console.log('❌ window.updateRequirementStats NO está disponible');
+        }
+    }
 
     // Calcular fecha del primer escenario ejecutado del caso actual
     const firstExecutionDate = currentCase ? getFirstExecutionDate(currentCase) : null;
@@ -427,13 +415,18 @@ function switchToCaseUI(caseId) {
         updateCurrentCaseContent();
 
         // Actualizar estadísticas
-        if (typeof updateStats === 'function') {
-            updateStats();
+        if (typeof updateAppStats === 'function') {
+            updateAppStats();
         }
 
         // Actualizar tabla de escenarios
         if (typeof renderTestCases === 'function') {
             renderTestCases();
+        }
+        
+        // Actualizar filtros
+        if (typeof updateFilters === 'function') {
+            updateFilters();
         }
         
         // 🆕 ACTUALIZAR VISIBILIDAD DE TIMER BARS

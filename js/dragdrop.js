@@ -822,15 +822,18 @@ function updateDragHandlesState() {
 }
 
 // Extender la función applyFilters existente para actualizar handles
-const originalApplyFilters = window.applyFilters;
-window.applyFilters = function () {
-    // Llamar a la función original
-    originalApplyFilters();
+// Ahora que dragdrop.js se carga DESPUÉS de cases.js, podemos hacer esto directamente
+if (typeof window.applyFilters === 'function') {
+    const originalApplyFilters = window.applyFilters;
+    window.applyFilters = function () {
+        // Llamar a la función original
+        originalApplyFilters();
 
-    // Actualizar estado de handles de drag
-    setTimeout(() => {
-        updateDragHandlesState();
-    }, 100);
+        // Actualizar estado de handles de drag
+        setTimeout(() => {
+            updateDragHandlesState();
+        }, 100);
+    };
 }
 
 // ===============================================

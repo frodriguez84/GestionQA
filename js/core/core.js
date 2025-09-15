@@ -72,34 +72,15 @@ let scrollContainer = null;
  * Guarda datos con compresión automática
  */
 function saveToStorage() {
-    try {
-        // Comprimir datos antes de guardar
-        const compressedTestCases = compressData(testCases);
-        const compressedInputVariables = compressData(inputVariableNames);
-        const compressedRequirementInfo = compressData(requirementInfo);
+    // Usar las funciones centralizadas de utils.js
+    const success = saveData('testCases', testCases) && 
+                   saveData('inputVariableNames', inputVariableNames) && 
+                   saveData('requirementInfo', requirementInfo);
+    
+    if (!success) {
+        console.error('❌ Error guardando datos usando funciones centralizadas');
         
-        localStorage.setItem('testCases', compressedTestCases);
-        localStorage.setItem('inputVariableNames', compressedInputVariables);
-        localStorage.setItem('requirementInfo', compressedRequirementInfo);
-        // console.log('✅ Datos guardados en localStorage (comprimidos)');
-    } catch (e) {
-        console.error('❌ Error guardando en localStorage:', e);
-        
-        // 🚨 SOLUCIÓN DE EMERGENCIA: Intentar limpiar y guardar de nuevo
-        console.log('🚨 Intentando solución de emergencia...');
-        
-        // 1. Diagnóstico
-        const diagnosis = diagnoseLocalStorage();
-        console.log(`📊 Espacio usado: ${(diagnosis.totalSize / 1024 / 1024).toFixed(2)} MB`);
-        
-        // 2. Optimización de datos (eliminar duplicación)
-        const optimization = optimizeLocalStorageData();
-        console.log(`🧹 Optimización: ${(optimization.spaceSaved / 1024).toFixed(2)} KB liberados`);
-        
-        // 3. Limpieza automática
-        const cleanup = cleanupLocalStorage();
-        
-        // 4. Intentar guardar de nuevo (con compresión)
+        // Fallback a método anterior si las funciones centralizadas fallan
         try {
             const compressedTestCases = compressData(testCases);
             const compressedInputVariables = compressData(inputVariableNames);
@@ -108,52 +89,13 @@ function saveToStorage() {
             localStorage.setItem('testCases', compressedTestCases);
             localStorage.setItem('inputVariableNames', compressedInputVariables);
             localStorage.setItem('requirementInfo', compressedRequirementInfo);
-            // console.log('✅ Datos guardados después de limpieza (comprimidos)');
             
-            // Mostrar mensaje de éxito
-            const totalSpaceSaved = (optimization.spaceSaved + cleanup.cleanedSize) / 1024;
-            showWarning(
-                `¡Problema resuelto! Se liberaron ${totalSpaceSaved.toFixed(2)} KB de espacio automáticamente.`,
-                'Espacio liberado'
-            );
+            console.log('✅ Datos guardados usando método de fallback');
+        } catch (e) {
+            console.error('❌ Error crítico en fallback:', e);
+            alert('❌ Error crítico: No se pudieron guardar los datos.\n\nPor favor, exporta tu trabajo inmediatamente y recarga la página.');
             
-        } catch (e2) {
-            console.error('❌ Error persistente después de limpieza:', e2);
-            
-            // Si aún falla, ofrecer opciones al usuario
-            const userChoice = confirm(
-                `🚨 LOCALSTORAGE LLENO\n\n` +
-                `Espacio usado: ${(diagnosis.totalSize / 1024 / 1024).toFixed(2)} MB\n` +
-                `Espacio liberado: ${(cleanup.cleanedSize / 1024).toFixed(2)} KB\n\n` +
-                `¿Deseas:\n` +
-                `• SÍ: Limpiar datos antiguos y continuar\n` +
-                `• NO: Exportar proyecto y limpiar todo`
-            );
-            
-            if (userChoice) {
-                // Limpieza más agresiva
-                aggressiveCleanup();
-                try {
-                    const compressedTestCases = compressData(testCases);
-                    const compressedInputVariables = compressData(inputVariableNames);
-                    const compressedRequirementInfo = compressData(requirementInfo);
-                    
-                    localStorage.setItem('testCases', compressedTestCases);
-                    localStorage.setItem('inputVariableNames', compressedInputVariables);
-                    localStorage.setItem('requirementInfo', compressedRequirementInfo);
-                    // console.log('✅ Datos guardados después de limpieza agresiva (comprimidos)');
-                    showSuccess('¡Problema resuelto! Se liberó espacio adicional.', 'Limpieza exitosa');
-                } catch (e3) {
-                    console.error('❌ Error final:', e3);
-                    alert('❌ Error crítico: No se pudo guardar. Por favor, exporta tu proyecto y recarga la página.');
-                }
-            } else {
-                // Ofrecer exportar proyecto
-                if (confirm('¿Exportar proyecto actual antes de limpiar todo?')) {
-                    exportProjectJSONv3();
-                }
-                localStorage.clear();
-                alert('🧹 localStorage limpiado completamente. Recarga la página.');
+            if (confirm('¿Deseas recargar la página para liberar memoria?')) {
                 window.location.reload();
             }
         }
@@ -162,22 +104,21 @@ function saveToStorage() {
 
 function loadFromStorage() {
     try {
-        // Cargar casos de prueba (con descompresión automática)
-        const savedCases = localStorage.getItem('testCases');
-        if (savedCases) {
-            testCases = decompressData(savedCases);
+        // Usar las funciones centralizadas de utils.js
+        const savedTestCases = loadData('testCases');
+        const savedInputVariables = loadData('inputVariableNames');
+        const savedRequirementInfo = loadData('requirementInfo');
+        
+        if (savedTestCases) {
+            testCases = savedTestCases;
         }
-
-        // Cargar variables de entrada (con descompresión automática)
-        const savedVars = localStorage.getItem('inputVariableNames');
-        if (savedVars) {
-            inputVariableNames = decompressData(savedVars);
+        
+        if (savedInputVariables) {
+            inputVariableNames = savedInputVariables;
         }
-
-        // Cargar información del requerimiento (con descompresión automática)
-        const savedReqInfo = localStorage.getItem('requirementInfo');
-        if (savedReqInfo) {
-            requirementInfo = decompressData(savedReqInfo);
+        
+        if (savedRequirementInfo) {
+            requirementInfo = savedRequirementInfo;
         }
 
         // Asegurar que filteredCases esté inicializado
@@ -187,12 +128,18 @@ function loadFromStorage() {
         setTimeout(() => {
             if (typeof restoreBugfixingTimers === 'function') {
                 restoreBugfixingTimers();
-                /* console.log('✅ Timers de bugfixing restaurados después de cargar desde localStorage (core)'); */
+            }
+            // Actualizar UI después de cargar datos
+            if (typeof updateAppStats === 'function') {
+                updateAppStats();
+            }
+            if (typeof renderTestCases === 'function') {
+                renderTestCases();
+            }
+            if (typeof updateFilters === 'function') {
+                updateFilters();
             }
         }, 100);
-
-        // console.log('✅ Datos cargados desde localStorage');
-        // console.log(`📊 ${testCases.length} casos cargados`);
 
     } catch (e) {
         console.error('❌ Error cargando desde localStorage:', e);
@@ -434,6 +381,11 @@ function initializeApp() {
     // 🎯 PASO 3: Configurar event listeners esenciales SOLO para multicaso
     setupEssentialEventListeners();
     
+    // 🎯 PASO 3.1: Reintento tardío para event listeners (por si el DOM no estaba listo)
+    setTimeout(() => {
+        setupEssentialEventListeners();
+    }, 1000);
+    
     // 🎯 PASO 4: Configurar botón de regreso al dashboard
     setupDashboardNavigation();
     
@@ -509,7 +461,9 @@ function setupEssentialEventListeners() {
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', () => {
-            if (typeof applyFilters === 'function') applyFilters();
+            if (typeof window.applyFilters === 'function') {
+                window.applyFilters();
+            }
         });
     }
 
@@ -565,6 +519,8 @@ function setupEssentialEventListeners() {
 
     // Event listeners para modales
     setupModalEventListeners();
+    
+    // ✅ Event listeners configurados correctamente
 }
 
 function setupModalEventListeners() {
@@ -976,7 +932,8 @@ if (document.readyState === 'loading') {
 
             if (typeof window.updateMulticaseUI === 'function') window.updateMulticaseUI();
             if (typeof window.renderTestCases === 'function') window.renderTestCases();
-            if (typeof window.updateStats === 'function') window.updateStats();
+            if (typeof window.updateAppStats === 'function') window.updateAppStats();
+            if (typeof window.updateFilters === 'function') window.updateFilters();
             if (typeof window.updateRequirementButtons === 'function') window.updateRequirementButtons();
 
             console.log(`✅ Proyecto importado (hotfix) desde ${fileName}`);

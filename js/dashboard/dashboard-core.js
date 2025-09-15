@@ -189,9 +189,9 @@ function getAllRequirements() {
 // ===============================================
 
 /**
- * Aplica filtros a los requerimientos
+ * Aplica filtros a los requerimientos del dashboard
  */
-function applyFilters() {
+function applyDashboardFilters() {
     let filtered = [...requirementsList];
     
     // Filtro por estado
@@ -277,15 +277,11 @@ function updateRequirementStats(requirementId) {
     const requirement = getRequirement(requirementId);
     if (!requirement) return;
     
-    console.log('🔄 Actualizando estadísticas para requerimiento:', requirement.name);
-    
     // Calcular estadísticas reales usando la misma lógica que la app
     const realStats = calculateRealStatsFromCases(requirement);
     
     // Actualizar las estadísticas del requerimiento
     requirement.stats = realStats;
-    
-    console.log('📊 Estadísticas actualizadas:', realStats);
     
     saveRequirements();
     return realStats;
@@ -399,7 +395,6 @@ function updateAllRequirementsStats() {
         updateRequirementStats(requirement.id);
     });
     
-    console.log('✅ Estadísticas de todos los requerimientos actualizadas');
     saveRequirements();
 }
 
@@ -536,7 +531,6 @@ function getActiveRequirement() {
 function saveRequirements() {
     try {
         localStorage.setItem('dashboardRequirements', JSON.stringify(requirementsList));
-        console.log('✅ Requerimientos guardados:', requirementsList.length, 'requerimientos');
         
         // También guardar en el formato del dashboard
         const dashboardData = {
@@ -550,7 +544,6 @@ function saveRequirements() {
         };
         
         localStorage.setItem('dashboardData', JSON.stringify(dashboardData));
-        console.log('✅ Datos del dashboard guardados');
     } catch (error) {
         console.error('❌ Error guardando requerimientos:', error);
     }
@@ -565,7 +558,6 @@ function loadRequirements() {
         if (saved) {
             // Descomprimir datos si están comprimidos
             requirementsList = typeof decompressData === 'function' ? decompressData(saved) : JSON.parse(saved);
-            console.log(`✅ ${requirementsList.length} requerimientos cargados`);
         } else {
             // Crear algunos requerimientos de ejemplo
             createSampleRequirements();
@@ -668,7 +660,7 @@ function initializeDashboard() {
                 updateAllRequirementsStats();
                 
                 // Aplicar filtros iniciales
-                applyFilters();
+                applyDashboardFilters();
                 
                 // Actualizar interfaz
                 updateDashboard();
@@ -681,7 +673,7 @@ function initializeDashboard() {
         updateAllRequirementsStats();
         
         // Aplicar filtros iniciales
-        applyFilters();
+        applyDashboardFilters();
         
         // Actualizar interfaz
         updateDashboard();
@@ -701,7 +693,7 @@ window.updateRequirement = updateRequirement;
 window.deleteRequirement = deleteRequirement;
 window.getRequirement = getRequirement;
 window.getAllRequirements = getAllRequirements;
-window.applyFilters = applyFilters;
+window.applyDashboardFilters = applyDashboardFilters;
 window.calculateDashboardStats = calculateDashboardStats;
 window.navigateToRequirement = navigateToRequirement;
 window.getActiveRequirement = getActiveRequirement;

@@ -471,8 +471,18 @@ function insertCaseInCorrectPosition(newCase) {
         }
     }
 
-    // Insertar en la posición correcta
-    testCases.splice(insertIndex, 0, newCase);
+        // Insertar en la posición correcta
+        testCases.splice(insertIndex, 0, newCase);
+
+        // Actualizar estadísticas y UI
+        updateAppStats();
+        renderTestCases();
+        updateFilters();
+        
+        // Actualizar estadísticas del requerimiento
+        if (typeof updateMulticaseRequirementStats === 'function' && window.currentRequirement) {
+            updateMulticaseRequirementStats(window.currentRequirement);
+        }
 }
 
 // Función auxiliar para renumerar escenarios posteriores - MEJORADA
@@ -545,6 +555,16 @@ window.duplicateTestCase = function (id) {
 
         // Agregar al final (ya es la posición correcta)
         testCases.push(duplicatedCase);
+
+        // Actualizar estadísticas y UI
+        updateAppStats();
+        renderTestCases();
+        updateFilters();
+        
+        // Actualizar estadísticas del requerimiento
+        if (typeof updateMulticaseRequirementStats === 'function' && window.currentRequirement) {
+            updateMulticaseRequirementStats(window.currentRequirement);
+        }
 
         //  SINCRONIZAR INMEDIATAMENTE CON MULTICASO
 
@@ -701,6 +721,16 @@ window.deleteTestCase = function (id) {
 
                 // Aplicar renumeración inteligente
                 smartRenumberAfterDeletion();
+
+                // Actualizar estadísticas y UI
+                updateAppStats();
+                renderTestCases();
+                updateFilters();
+                
+                // Actualizar estadísticas del requerimiento
+                if (typeof updateMulticaseRequirementStats === 'function' && window.currentRequirement) {
+                    updateMulticaseRequirementStats(window.currentRequirement);
+                }
 
                 // 🎯 SINCRONIZAR INMEDIATAMENTE CON MULTICASO
                 if (typeof syncScenariosWithCurrentCase === 'function') {
@@ -942,17 +972,23 @@ window.renderTestCases = function () {
 // ===============================================
 
 window.applyFilters = function () {
-    const search = document.getElementById('searchInput').value.toLowerCase();
-    const testerFilter = document.getElementById('testerFilter').value;
-    const statusFilter = document.getElementById('statusFilter').value;
-    const dateFrom = document.getElementById('dateFromFilter').value;
-    const dateTo = document.getElementById('dateToFilter').value;
+    try {
+        const searchInput = document.getElementById('searchInput');
+        if (!searchInput) {
+            return;
+        }
+        
+        const search = searchInput.value.toLowerCase();
+        const testerFilter = document.getElementById('testerFilter').value;
+        const statusFilter = document.getElementById('statusFilter').value;
+        const dateFrom = document.getElementById('dateFromFilter').value;
+        const dateTo = document.getElementById('dateToFilter').value;
+    
+        // NUEVA lógica para casos ocultos
+        const showHidden = document.getElementById('showHiddenToggle') ?
+            document.getElementById('showHiddenToggle').checked : false;
 
-    // NUEVA lógica para casos ocultos
-    const showHidden = document.getElementById('showHiddenToggle') ?
-        document.getElementById('showHiddenToggle').checked : false;
-
-    filteredCases = testCases.filter(testCase => {
+        filteredCases = testCases.filter(testCase => {
         // NUEVA condición: filtrar ocultos a menos que esté activado el toggle
         if (!showHidden && testCase.hidden === true) {
             return false;
@@ -982,11 +1018,15 @@ window.applyFilters = function () {
             }
         }
 
-        return matchesSearch && matchesTester && matchesStatus && matchesDateRange;
-    });
+            return matchesSearch && matchesTester && matchesStatus && matchesDateRange;
+        });
 
-    renderTestCases();
-    updateStatsWithHidden(); // Usar la nueva función que incluye ocultos
+        renderTestCases();
+        updateStatsWithHidden(); // Usar la nueva función que incluye ocultos
+        
+    } catch (error) {
+        console.error('❌ Error en applyFilters:', error);
+    }
 }
 
 window.updateFilters = function () {
@@ -1031,20 +1071,55 @@ window.updateFilters = function () {
 }
 
 // ===============================================
+// FUNCIONES DE TIEMPO
+// ===============================================
+
+window.updateManualTime = function(scenarioId, newTime) {
+    const testCase = testCases.find(tc => tc.id === scenarioId);
+    if (testCase) {
+        testCase.testTime = parseFloat(newTime) || 0;
+        
+        // Guardar cambios
+        if (typeof saveMulticaseData === 'function') {
+            saveMulticaseData();
+        } else {
+            saveToStorage();
+        }
+        
+        // Actualizar estadísticas y UI
+        updateAppStats();
+        renderTestCases();
+        
+        // Actualizar estadísticas del requerimiento
+        if (typeof updateMulticaseRequirementStats === 'function' && window.currentRequirement) {
+            updateMulticaseRequirementStats(window.currentRequirement);
+        }
+        
+        console.log(`⏱️ Tiempo actualizado para escenario ${testCase.scenarioNumber}: ${newTime}h`);
+    }
+};
+
+// ===============================================
 // ESTADÍSTICAS
 // ===============================================
 
-window.updateStats = function () {
-    const total = filteredCases.length;
-    const okCases = filteredCases.filter(tc => tc.status === 'OK').length;
-    const noCases = filteredCases.filter(tc => tc.status === 'NO').length;
+window.updateAppStats = function () {
+    // Usar testCases directamente para estadísticas más precisas
+    const total = testCases.length;
+    const okCases = testCases.filter(tc => tc.status === 'OK').length;
+    const noCases = testCases.filter(tc => tc.status === 'NO').length;
     const successRate = total > 0 ? Math.round((okCases / total) * 100) : 0;
 
-    // Stats básicas existentes
-    document.getElementById('totalCases').textContent = total;
-    document.getElementById('okCases').textContent = okCases;
-    document.getElementById('noCases').textContent = noCases;
-    document.getElementById('successRate').textContent = successRate + '%';
+    // Actualizar elementos del DOM
+    const totalCasesEl = document.getElementById('totalCases');
+    const okCasesEl = document.getElementById('okCases');
+    const noCasesEl = document.getElementById('noCases');
+    const successRateEl = document.getElementById('successRate');
+
+    if (totalCasesEl) totalCasesEl.textContent = total;
+    if (okCasesEl) okCasesEl.textContent = okCases;
+    if (noCasesEl) noCasesEl.textContent = noCases;
+    if (successRateEl) successRateEl.textContent = successRate + '%';
 
     // 🆕 AGREGAR SOLO UNA STAT DE TIEMPO TOTAL
     addTotalTimeStatsCard();
@@ -1178,51 +1253,9 @@ window.toggleShowHidden = function () {
 // ACTUALIZACIÓN DE ESTADO Y FECHA
 // ===============================================
 
-// Función para formatear fecha yyyy-mm-dd a dd-mm-aaaa para mostrar
-function formatDateForDisplay(dateString) {
-    if (!dateString || dateString.trim() === '') return '';
+// Función formatDateForDisplay movida a utils.js
 
-    try {
-        // Si ya está en formato dd-mm-aaaa, devolverlo tal como está
-        if (dateString.includes('/') || (dateString.includes('-') && dateString.split('-')[0].length === 2)) {
-            return dateString;
-        }
-
-        // Convertir de yyyy-mm-dd a dd-mm-aaaa
-        if (dateString.includes('-') && dateString.length === 10) {
-            const [year, month, day] = dateString.split('-');
-            return `${day}-${month}-${year}`;
-        }
-
-        return dateString;
-    } catch (e) {
-        console.error('Error formateando fecha:', e);
-        return dateString;
-    }
-}
-
-// Función para convertir fecha dd-mm-aaaa a yyyy-mm-dd para guardar
-function formatDateForStorage(dateString) {
-    if (!dateString || dateString.trim() === '') return '';
-
-    try {
-        // Si ya está en formato yyyy-mm-dd, devolverlo tal como está
-        if (dateString.includes('-') && dateString.length === 10 && dateString.split('-')[0].length === 4) {
-            return dateString;
-        }
-
-        // Convertir de dd-mm-aaaa a yyyy-mm-dd
-        if (dateString.includes('-') && dateString.split('-')[0].length === 2) {
-            const [day, month, year] = dateString.split('-');
-            return `${year}-${month}-${day}`;
-        }
-
-        return dateString;
-    } catch (e) {
-        console.error('Error convirtiendo fecha:', e);
-        return dateString;
-    }
-}
+// Función formatDateForStorage movida a utils.js
 
 
 // Funcion para actualizar la fecha al cambiar el resultado obtenido
@@ -1264,6 +1297,16 @@ window.updateStatusAndDate = function (id, value) {
             updateAllBugfixingButtons();
         }
         
+        // 🎯 CRÍTICO: Actualizar estadísticas de la UI
+        // Actualizar estadísticas de la UI
+        window.updateAppStats();
+        applyFilters();
+        
+        // Actualizar estadísticas del requerimiento
+        if (typeof updateMulticaseRequirementStats === 'function' && window.currentRequirement) {
+            updateMulticaseRequirementStats(window.currentRequirement);
+        }
+        
         // 🎯 CRÍTICO: Sincronizar con dashboard después de modificar escenario
         /* console.log('🔍 DEBUG updateStatusAndDate - Verificando sincronización...');
         console.log('🔍 DEBUG updateStatusAndDate - syncOnScenarioModified disponible:', typeof syncOnScenarioModified);
@@ -1288,11 +1331,10 @@ window.updateStatusAndDate = function (id, value) {
         }
 
         // Actualizar estadísticas inmediatamente
-        if (typeof updateStatsWithHidden === 'function') {
-            updateStatsWithHidden();
-        } else {
-            updateStats();
-        }
+        window.updateAppStats();
+        
+        // Renderizar tabla inmediatamente para ver cambios
+        renderTestCases();
 
         // Actualizar filtros si es necesario
         applyFilters();
@@ -1343,13 +1385,21 @@ window.viewEvidence = viewEvidence;
 window.renderTestCases = renderTestCases;
 window.applyFilters = applyFilters;
 window.updateFilters = updateFilters;
-window.updateStats = updateStats;
+window.updateAppStats = updateAppStats;
 window.updateStatusAndDate = updateStatusAndDate;
 window.handleEvidenceUpload = handleEvidenceUpload;
 window.addEvidenceToContainer = addEvidenceToContainer;
 window.zoomEvidenceImage = zoomEvidenceImage;
 window.removeVarName = removeVarName;
 window.formatDateForDisplay = formatDateForDisplay;
+window.updateManualTime = updateManualTime;
+
+// DEBUG: Verificar que las funciones estén disponibles
+console.log('🔍 DEBUG cases.js cargado:');
+console.log('🔍 renderTestCases disponible:', typeof window.renderTestCases);
+console.log('🔍 updateAppStats disponible:', typeof window.updateAppStats);
+console.log('🔍 updateFilters disponible:', typeof window.updateFilters);
+console.log('🔍 updateManualTime disponible:', typeof window.updateManualTime);
 
 // ✅ FUNCIONES CRÍTICAS PARA DUPLICACIÓN
 window.insertCaseInCorrectPosition = insertCaseInCorrectPosition;

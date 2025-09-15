@@ -35,7 +35,7 @@ function renderRequirementsList() {
     const container = document.getElementById('requirementsContainer');
     if (!container) return;
     
-    const requirements = applyFilters();
+    const requirements = applyDashboardFilters();
     
     if (requirements.length === 0) {
         container.innerHTML = `
@@ -368,7 +368,7 @@ function handleEditRequirementSubmit(e) {
  */
 function handleFilterChange(filter) {
     currentFilter = filter;
-    applyFilters();
+    applyDashboardFilters();
     updateDashboard();
 }
 
@@ -379,7 +379,7 @@ function handleSearch() {
     const searchInput = document.getElementById('searchRequirements');
     if (searchInput) {
         searchQuery = searchInput.value;
-        applyFilters();
+        applyDashboardFilters();
         updateDashboard();
     }
 }
@@ -391,7 +391,7 @@ function handleSortChange() {
     const sortSelect = document.getElementById('sortBy');
     if (sortSelect) {
         currentSort = sortSelect.value;
-        applyFilters();
+        applyDashboardFilters();
         updateDashboard();
     }
 }

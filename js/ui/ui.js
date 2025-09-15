@@ -722,6 +722,7 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
 
             console.log('📝 Procesando formulario de caso de prueba...');
+            console.log('🔍 DEBUG: testCases.length antes:', testCases.length);
 
             // Obtener valores del formulario
             const cycleNumber = document.getElementById('cycleNumber').value.trim();
@@ -839,14 +840,73 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 testCases.push(newCase);
                 console.log('✅ Nuevo caso creado:', newCase);
+                console.log('🔍 DEBUG: testCases.length después de push:', testCases.length);
             }
 
-            // CRÍTICO: Sincronizar escenarios con el caso actual ANTES de guardar
+            // CRÍTICO: Actualizar UI INMEDIATAMENTE después de modificar testCases
+            console.log('🔄 Actualizando UI inmediatamente...');
+            console.log('🔍 DEBUG: renderTestCases disponible:', typeof renderTestCases);
+            console.log('🔍 DEBUG: updateAppStats disponible:', typeof updateAppStats);
+            console.log('🔍 DEBUG: updateFilters disponible:', typeof updateFilters);
+            
+            if (typeof renderTestCases === 'function') {
+                renderTestCases();
+                console.log('✅ renderTestCases ejecutado');
+            } else {
+                console.error('❌ renderTestCases no está disponible');
+            }
+            
+            if (typeof updateAppStats === 'function') {
+                updateAppStats();
+                console.log('✅ updateAppStats ejecutado');
+            } else {
+                console.error('❌ updateAppStats no está disponible');
+            }
+            
+            // Actualizar estadísticas del requerimiento
+            if (typeof updateRequirementStats === 'function' && window.currentRequirement) {
+                updateRequirementStats(window.currentRequirement);
+            }
+            
+            if (typeof updateFilters === 'function') {
+                updateFilters();
+                console.log('✅ updateFilters ejecutado');
+            } else {
+                console.error('❌ updateFilters no está disponible');
+            }
+
+            // CRÍTICO: Sincronizar escenarios con el caso actual DESPUÉS de actualizar UI
             console.log('🔄 Sincronizando escenarios con caso actual...');
             console.log('📊 testCases.length antes de sincronizar:', testCases.length);
+            
+            // Guardar el estado actual de testCases antes de sincronizar
+            const testCasesBeforeSync = [...testCases];
+            
             if (typeof syncScenariosWithCurrentCase === 'function') {
                 const syncResult = syncScenariosWithCurrentCase();
                 console.log('📊 Resultado de sincronización:', syncResult ? 'Éxito' : 'Falló');
+                
+                // Verificar si se perdió algún escenario durante la sincronización
+                if (testCases.length < testCasesBeforeSync.length) {
+                    console.log('⚠️ Se perdieron escenarios durante sincronización, restaurando...');
+                    // Restaurar escenarios perdidos
+                    testCasesBeforeSync.forEach(scenario => {
+                        if (!testCases.find(tc => tc.id === scenario.id)) {
+                            testCases.push(scenario);
+                            console.log('🔄 Escenario restaurado:', scenario.scenarioNumber);
+                        }
+                    });
+                }
+                
+                // Re-renderizar después de sincronizar para asegurar consistencia
+                renderTestCases();
+                updateAppStats();
+                updateFilters();
+                
+                // Actualizar estadísticas del requerimiento
+                if (typeof updateMulticaseRequirementStats === 'function' && window.currentRequirement) {
+                    updateMulticaseRequirementStats(window.currentRequirement);
+                }
             } else {
                 console.warn('⚠️ syncScenariosWithCurrentCase no está disponible');
             }
@@ -875,10 +935,6 @@ document.addEventListener('DOMContentLoaded', function () {
             } else {
                 console.warn('⚠️ syncOnScenarioModified no está disponible');
             }
-
-            renderTestCases();
-            updateStats();
-            updateFilters();
             closeModal();
 
             const action = currentEditingId !== null ? 'actualizado' :
@@ -1007,6 +1063,55 @@ function syncRequirementData() {
         console.log('⚠️ No hay datos en requirementInfo para sincronizar');
     }
 }
+
+// 🔍 FUNCIÓN DE DIAGNÓSTICO
+window.diagnoseApp = function() {
+    console.log('🔍 DIAGNÓSTICO DE LA APLICACIÓN:');
+    console.log('📊 testCases.length:', testCases ? testCases.length : 'NO DEFINIDO');
+    console.log('📊 filteredCases.length:', filteredCases ? filteredCases.length : 'NO DEFINIDO');
+    console.log('📊 currentEditingId:', currentEditingId);
+    console.log('📊 renderTestCases disponible:', typeof window.renderTestCases);
+    console.log('📊 updateStats disponible:', typeof window.updateStats);
+    console.log('📊 updateFilters disponible:', typeof window.updateFilters);
+    console.log('📊 applyFilters disponible:', typeof window.applyFilters);
+    console.log('📊 updateStatusAndDate disponible:', typeof window.updateStatusAndDate);
+    console.log('📊 saveToStorage disponible:', typeof window.saveToStorage);
+    console.log('📊 saveMulticaseData disponible:', typeof window.saveMulticaseData);
+    console.log('📊 syncScenariosWithCurrentCase disponible:', typeof window.syncScenariosWithCurrentCase);
+    
+    // Verificar elementos del DOM
+    const testCasesBody = document.getElementById('testCasesBody');
+    const totalCases = document.getElementById('totalCases');
+    const okCases = document.getElementById('okCases');
+    const noCases = document.getElementById('noCases');
+    
+    console.log('📊 testCasesBody existe:', !!testCasesBody);
+    console.log('📊 totalCases existe:', !!totalCases);
+    console.log('📊 okCases existe:', !!okCases);
+    console.log('📊 noCases existe:', !!noCases);
+    
+    return {
+        testCasesLength: testCases ? testCases.length : 0,
+        filteredCasesLength: filteredCases ? filteredCases.length : 0,
+        functionsAvailable: {
+            renderTestCases: typeof window.renderTestCases,
+            updateStats: typeof window.updateStats,
+            updateFilters: typeof window.updateFilters,
+            applyFilters: typeof window.applyFilters
+        },
+        domElements: {
+            testCasesBody: !!testCasesBody,
+            totalCases: !!totalCases,
+            okCases: !!okCases,
+            noCases: !!noCases
+        }
+    };
+};
+
+// Ejecutar diagnóstico automáticamente
+setTimeout(() => {
+    window.diagnoseApp();
+}, 1000);
 
 
 
