@@ -810,7 +810,17 @@ document.addEventListener('DOMContentLoaded', function () {
                 const duplicatedCase = {
                     ...testCaseData,
                     id: Date.now(), // Nuevo ID único
-                    hidden: false
+                    hidden: false,
+                    // 🕐 LIMPIAR TODOS LOS TIMERS DEL ESCENARIO DUPLICADO
+                    bugfixingTimer: null, // Sin timer de bugfixing
+                    bugfixingStartTime: null, // Sin tiempo de inicio
+                    bugfixingHours: 0, // Resetear horas de bugfixing
+                    timerRunning: false, // Sin timer corriendo
+                    timerType: null, // Sin tipo de timer
+                    timerStartTime: null, // Sin tiempo de inicio
+                    timerEndTime: null, // Sin tiempo de fin
+                    timerDuration: 0, // Sin duración
+                    isTimerActive: false // Timer inactivo
                 };
 
                 // Insertar en la posición correcta
@@ -846,6 +856,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 testCases.push(newCase);
                 console.log('✅ Nuevo caso creado:', newCase);
                 console.log('🔍 DEBUG: testCases.length después de push:', testCases.length);
+                
+                // 🔄 Notificar sincronización en tiempo real
+                if (typeof window.RealtimeSync !== 'undefined' && window.RealtimeSync.notifyScenarioUpdated) {
+                    window.RealtimeSync.notifyScenarioUpdated(newCase.id, newCase);
+                    console.log('🔄 Notificación de sincronización enviada para nuevo escenario:', newCase.scenarioNumber);
+                }
             }
 
             // CRÍTICO: Actualizar UI INMEDIATAMENTE después de modificar testCases

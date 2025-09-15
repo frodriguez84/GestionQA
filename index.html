@@ -588,6 +588,12 @@
     <script src="js/utils/config.js?v=20250111a"></script>
     <script src="js/utils/compression-utils.js?v=20250111b"></script>
     
+    <!-- STORAGE SYSTEM (Enterprise-grade storage) -->
+    <script src="js/storage/indexeddb-manager.js?v=20250113d"></script>
+    
+    <!-- SYNC SYSTEM (Real-time synchronization) -->
+    <script src="js/sync/realtime-sync.js?v=20250113a"></script>
+    
     <!-- OPTIMIZATION (Performance) -->
     <script src="js/optimization/event-system.js?v=20250111a"></script>
     <script src="js/optimization/lazy-loader.js?v=20250111a"></script>
@@ -724,10 +730,16 @@
             // Progreso de inicialización
             updateLoaderProgress(75, 'Inicializando multicaso...');
 
-            // Llamar directamente a la inicialización del sistema multicaso
-            setTimeout(() => {
+            // Inicializar IndexedDB primero
+            setTimeout(async () => {
+                if (typeof window.IndexedDBManager !== 'undefined' && window.IndexedDBManager.init) {
+                    console.log('🏗️ Inicializando IndexedDB...');
+                    await window.IndexedDBManager.init();
+                    updateLoaderProgress(70, 'IndexedDB inicializado...');
+                }
+
+                // Llamar directamente a la inicialización del sistema multicaso
                 if (typeof initializeMulticaseSystem === 'function') {
-                    
                     initializeMulticaseSystem();
                     updateLoaderProgress(85, 'Sistema multicaso iniciado...');
                 }

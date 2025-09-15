@@ -479,6 +479,11 @@ function saveMulticaseData() {
                 updateCaseStats(currentCase);
 
                 /* console.log('✅ Caso actual sincronizado antes de guardar'); */
+                
+                // 🔄 Notificar sincronización en tiempo real
+                if (typeof window.RealtimeSync !== 'undefined' && window.RealtimeSync.notifyCaseUpdated) {
+                    window.RealtimeSync.notifyCaseUpdated(currentCaseId, currentCase);
+                }
                 // console.log('📊 Estados a guardar:', currentCase.scenarios.map(s => ({
                 //     scenario: s.scenarioNumber,
                 //     cycle: s.cycleNumber,

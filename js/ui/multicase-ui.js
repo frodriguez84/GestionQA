@@ -901,6 +901,11 @@ function handleNewCaseSubmit(e) {
         closeNewCaseModal();
 
         showSuccess(`Caso "${caseNumber}: ${title}" creado exitosamente`, 'Caso creado');
+        
+        // 🔄 Notificar sincronización en tiempo real
+        if (typeof window.RealtimeSync !== 'undefined' && window.RealtimeSync.notifyCaseCreated) {
+            window.RealtimeSync.notifyCaseCreated(newCase.id, newCase);
+        }
     }
 }
 

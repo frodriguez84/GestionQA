@@ -543,6 +543,19 @@ window.duplicateTestCase = function (id) {
     duplicatedCase.observations = ''; // Limpiar observaciones
     duplicatedCase.errorNumber = ''; // Limpiar número de error
     duplicatedCase.evidence = []; // Limpiar evidencias
+    
+    // 🕐 LIMPIAR TODOS LOS TIMERS DEL ESCENARIO DUPLICADO
+    duplicatedCase.bugfixingTimer = null; // Sin timer de bugfixing
+    duplicatedCase.bugfixingStartTime = null; // Sin tiempo de inicio
+    duplicatedCase.bugfixingHours = 0; // Resetear horas de bugfixing
+    duplicatedCase.timerRunning = false; // Sin timer corriendo
+    duplicatedCase.timerType = null; // Sin tipo de timer
+    duplicatedCase.timerStartTime = null; // Sin tiempo de inicio
+    duplicatedCase.timerEndTime = null; // Sin tiempo de fin
+    duplicatedCase.timerDuration = 0; // Sin duración
+    duplicatedCase.isTimerActive = false; // Timer inactivo
+    
+    console.log('🕐 Timers limpiados en escenario duplicado:', duplicatedCase.scenarioNumber);
 
     // LÓGICA MEJORADA: Detectar si es el último escenario
     const originalScenarioNumber = parseInt(originalCase.scenarioNumber) || 0;
@@ -584,6 +597,13 @@ window.duplicateTestCase = function (id) {
         updateFilters();
 
         showSuccess(`Escenario ${duplicatedCase.scenarioNumber} (Ciclo 1) creado automáticamente`, 'Escenario creado');
+        
+        // 🔄 Notificar sincronización en tiempo real
+        if (typeof window.RealtimeSync !== 'undefined' && window.RealtimeSync.notifyScenarioUpdated) {
+            window.RealtimeSync.notifyScenarioUpdated(duplicatedCase.id, duplicatedCase);
+            console.log('🔄 Notificación de sincronización enviada para escenario duplicado:', duplicatedCase.scenarioNumber);
+        }
+        
         console.log('✅ Duplicación automática completada');
         return;
     }
@@ -757,6 +777,16 @@ window.deleteTestCase = function (id) {
                 }
 
                 console.log('✅ Eliminación completada correctamente');
+                
+                // 🔄 Notificar sincronización en tiempo real
+                if (typeof window.RealtimeSync !== 'undefined' && window.RealtimeSync.notifyScenarioUpdated) {
+                    window.RealtimeSync.notifyScenarioUpdated(deletedCase.id, {
+                        ...deletedCase,
+                        deleted: true,
+                        action: 'deleted'
+                    });
+                    console.log('🔄 Notificación de eliminación enviada para escenario:', deletedCase.scenarioNumber);
+                }
             };
             
             cancelBtn.onclick = () => {
@@ -1324,6 +1354,11 @@ window.updateStatusAndDate = function (id, value) {
 
         // Guardar en sistema tradicional
         saveToStorage();
+        
+        // 🔄 Notificar sincronización en tiempo real
+        if (typeof window.RealtimeSync !== 'undefined' && window.RealtimeSync.notifyScenarioUpdated) {
+            window.RealtimeSync.notifyScenarioUpdated(testCase.id, testCase);
+        }
 
         // 🎯 NUEVO: Actualizar UI multicaso inmediatamente
         if (typeof autoUpdateMulticaseUI === 'function') {
