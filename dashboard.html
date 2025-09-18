@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Gestor de Casos de Prueba</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/dashboard.css?v=20250111d">
+    <link rel="stylesheet" href="css/dashboard.css?v=20250113b">
 </head>
 
 <body>
@@ -36,10 +36,11 @@
                 <button class="btn btn-secondary" id="btnGenerateReport">
                     📊 Generar Reporte
                 </button>
-                <button class="btn btn-info" id="btnForceUpdate" onclick="forceUpdateApp()">
+                <!-- 🔧 BOTONES DE DESARROLLO (solo visibles en desarrollo) -->
+                <button class="btn btn-info" id="btnForceUpdate" onclick="forceUpdateApp()" style="display: none;">
                     🔄 Forzar Update
                 </button>
-                <button class="btn btn-success" id="btnCheckUpdates" onclick="checkUpdatesFallback()">
+                <button class="btn btn-success" id="btnCheckUpdates" onclick="checkUpdatesFallback()" style="display: none;">
                     🔍 Verificar Actualizaciones
                 </button>
                 <!-- Botones de importar/exportar ocultos por ahora -->
@@ -312,6 +313,22 @@
     <script src="js/dashboard/dashboard-storage.js?v=20250110a"></script>
     <script src="js/dashboard/dashboard-core.js?v=20250112g"></script>
     <script src="js/dashboard/dashboard-ui.js?v=20250112d"></script>
+    
+    <!-- 🔧 DETECCIÓN DE ENTORNO -->
+    <script>
+        // Detectar si estamos en desarrollo o producción
+        window.isDevelopment = window.location.hostname === 'localhost' || 
+                              window.location.hostname === '127.0.0.1' || 
+                              window.location.hostname.includes('dev') ||
+                              window.location.protocol === 'file:';
+        
+        console.log('🔍 Entorno detectado:', window.isDevelopment ? 'DESARROLLO' : 'PRODUCCIÓN');
+        console.log('🌐 Hostname:', window.location.hostname);
+        console.log('🔒 Protocolo:', window.location.protocol);
+    </script>
+    
+    <!-- 🔧 HERRAMIENTAS DE DESARROLLO -->
+    <script src="js/utils/dev-tools.js?v=20250113a"></script>
     
     <!-- CORE -->
     <script src="js/core/sync-manager.js?v=20250112a"></script>

@@ -110,8 +110,9 @@
                         <button class="btn btn-warning" onclick="renumberCycle1()">🔢 Renumerar Ciclos y
                             Escenarios</button>
 
-                        <button class="btn btn-info" id="btnForceUpdate" onclick="forceUpdateApp()">🔄 Forzar Update</button>
-                        <button class="btn btn-success" id="btnCheckUpdates" onclick="checkUpdatesFallback()">🔍 Verificar Actualizaciones</button>
+                        <!-- 🔧 BOTONES DE DESARROLLO (solo visibles en desarrollo) -->
+                        <button class="btn btn-info" id="btnForceUpdate" onclick="forceUpdateApp()" style="display: none;">🔄 Forzar Update</button>
+                        <button class="btn btn-success" id="btnCheckUpdates" onclick="checkUpdatesFallback()" style="display: none;">🔍 Verificar Actualizaciones</button>
 
 
                         <!-- Separador para zona peligrosa -->
@@ -601,6 +602,22 @@
     <!-- UPDATE SYSTEM (Automatic updates) -->
     <script src="js/version-manager.js?v=20250112a"></script>
     <script src="js/update-manager.js?v=20250112d"></script>
+    
+    <!-- 🔧 DETECCIÓN DE ENTORNO -->
+    <script>
+        // Detectar si estamos en desarrollo o producción
+        window.isDevelopment = window.location.hostname === 'localhost' || 
+                              window.location.hostname === '127.0.0.1' || 
+                              window.location.hostname.includes('dev') ||
+                              window.location.protocol === 'file:';
+        
+        console.log('🔍 Entorno detectado:', window.isDevelopment ? 'DESARROLLO' : 'PRODUCCIÓN');
+        console.log('🌐 Hostname:', window.location.hostname);
+        console.log('🔒 Protocolo:', window.location.protocol);
+    </script>
+    
+    <!-- 🔧 HERRAMIENTAS DE DESARROLLO -->
+    <script src="js/utils/dev-tools.js?v=20250113a"></script>
     
     <script src="js/optimization/smart-cache.js?v=20250111a"></script>
     <script src="js/optimization/dom-optimizer.js?v=20250111a"></script>
