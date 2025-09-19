@@ -21,9 +21,17 @@ function saveDashboardData() {
             lastSaved: new Date().toISOString()
         };
         
-        localStorage.setItem('dashboardData', JSON.stringify(data));
-        console.log('✅ Datos del dashboard guardados');
-        return true;
+        // SOLO guardar en IndexedDB para evitar duplicación en localStorage
+        if (typeof window.IndexedDBManager !== 'undefined' && window.IndexedDBManager.saveToIndexedDB) {
+            window.IndexedDBManager.saveToIndexedDB('dashboardData', data);
+            console.log('✅ Datos del dashboard guardados en IndexedDB (sin duplicación)');
+            return true;
+        } else {
+            // Fallback solo si IndexedDB no está disponible
+            localStorage.setItem('dashboardData', JSON.stringify(data));
+            console.log('⚠️ Fallback a localStorage (IndexedDB no disponible)');
+            return true;
+        }
     } catch (error) {
         console.error('❌ Error guardando datos del dashboard:', error);
         return false;

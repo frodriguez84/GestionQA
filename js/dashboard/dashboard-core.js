@@ -515,9 +515,7 @@ function getActiveRequirement() {
  */
 function saveRequirements() {
     try {
-        localStorage.setItem('dashboardRequirements', JSON.stringify(requirementsList));
-        
-        // También guardar en el formato del dashboard
+        // SOLO guardar en IndexedDB para evitar duplicación en localStorage
         const dashboardData = {
             requirements: requirementsList,
             settings: {
@@ -528,23 +526,30 @@ function saveRequirements() {
             lastSaved: new Date().toISOString()
         };
         
+        // Usar localStorage directamente - más simple y confiable
         localStorage.setItem('dashboardData', JSON.stringify(dashboardData));
+        console.log('✅ Requerimientos guardados en localStorage');
     } catch (error) {
         console.error('❌ Error guardando requerimientos:', error);
     }
 }
 
 /**
- * Carga los requerimientos desde localStorage
+ * Carga los requerimientos desde IndexedDB (VERSIÓN SINCRONA)
  */
 function loadRequirements() {
     try {
-        const saved = localStorage.getItem('dashboardRequirements');
+        // Usar localStorage directamente - más simple y confiable
+        const saved = localStorage.getItem('dashboardData');
         if (saved) {
-            // Descomprimir datos si están comprimidos
-            requirementsList = typeof decompressData === 'function' ? decompressData(saved) : JSON.parse(saved);
+            try {
+                const data = JSON.parse(saved);
+                requirementsList = data.requirements || [];
+                console.log('✅ Requerimientos cargados desde localStorage');
+            } catch (e) {
+                createSampleRequirements();
+            }
         } else {
-            // Crear algunos requerimientos de ejemplo
             createSampleRequirements();
         }
     } catch (error) {

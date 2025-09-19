@@ -55,12 +55,12 @@ const syncState = {
 /**
  * Sincroniza datos del dashboard con la app
  */
-function syncDashboardToApp(requirementId) {
+async function syncDashboardToApp(requirementId) {
     try {
         console.log(`🔄 Sincronizando dashboard → app para requerimiento: ${requirementId}`);
         
         // Obtener datos del dashboard
-        const dashboardData = getDashboardData();
+        const dashboardData = await getDashboardData();
         console.log('📊 Datos del dashboard obtenidos:', dashboardData ? 'Sí' : 'No');
         
         if (!dashboardData) {
@@ -89,8 +89,10 @@ function syncDashboardToApp(requirementId) {
                 tester: requirement.tester,
                 startDate: requirement.startDate || requirement.createdAt
             },
-            // CRÍTICO: Usar SOLO los casos del requerimiento actual (independencia)
-            cases: requirement.cases || [],
+            // CRÍTICO: Si no hay casos o hay casos vacíos, crear UN SOLO caso vacío
+            cases: (requirement.cases && requirement.cases.length > 0 && requirement.cases.some(c => c.scenarios && c.scenarios.length > 0)) 
+                ? requirement.cases 
+                : [createEmptyCase()],
             createdAt: requirement.createdAt,
             updatedAt: requirement.updatedAt
         };
@@ -520,17 +522,56 @@ function calculateRealStats(requirement) {
     return stats;
 }
 
+// Función para crear un caso vacío
+function createEmptyCase() {
+    return {
+        id: `case_${Date.now()}`,
+        caseNumber: "1",
+        title: "Caso 1",
+        objective: "Casos de prueba principales",
+        prerequisites: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'active',
+        scenarios: [],
+        inputVariableNames: ['Variable 1', 'Variable 2'],
+        stats: {
+            totalScenarios: 0,
+            totalHours: 0,
+            totalOK: 0,
+            totalNO: 0,
+            totalPending: 0,
+            successRate: 0,
+            cycles: []
+        }
+    };
+}
+
 // ===============================================
 // FUNCIONES DE GESTIÓN DE DATOS
 // ===============================================
 
 /**
- * Obtiene datos del dashboard
+ * Obtiene datos del dashboard desde IndexedDB
  */
 function getDashboardData() {
     try {
-        const data = localStorage.getItem('dashboardData');
-        return data ? JSON.parse(data) : null;
+        if (typeof window.IndexedDBManager !== 'undefined' && window.IndexedDBManager.loadFromIndexedDB) {
+            // Intentar cargar desde IndexedDB
+            return new Promise((resolve) => {
+                window.IndexedDBManager.loadFromIndexedDB('dashboardData').then(data => {
+                    resolve(data);
+                }).catch(() => {
+                    // Fallback a localStorage
+                    const fallbackData = localStorage.getItem('dashboardData');
+                    resolve(fallbackData ? JSON.parse(fallbackData) : null);
+                });
+            });
+        } else {
+            // Fallback a localStorage
+            const data = localStorage.getItem('dashboardData');
+            return data ? JSON.parse(data) : null;
+        }
     } catch (error) {
         console.error('❌ Error obteniendo datos del dashboard:', error);
         return null;
@@ -542,7 +583,9 @@ function getDashboardData() {
  */
 function saveDashboardData(data) {
     try {
+        // Usar localStorage directamente - más simple y confiable
         localStorage.setItem('dashboardData', JSON.stringify(data));
+        console.log('✅ Dashboard data guardado en localStorage');
         return true;
     } catch (error) {
         console.error('❌ Error guardando datos del dashboard:', error);

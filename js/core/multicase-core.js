@@ -498,12 +498,11 @@ function saveMulticaseData() {
         // Crear copia para verificación
         const dataToSave = JSON.stringify(currentRequirement);
 
-        // Guardar estructura completa
+        // Usar localStorage directamente - más simple y confiable
         localStorage.setItem('currentRequirement', dataToSave);
         localStorage.setItem('currentCaseId', currentCaseId);
         localStorage.setItem('multicaseMode', multicaseMode.toString());
         
-        // También guardar en formato multicaseData para compatibilidad (comprimido)
         multicaseData = {
             currentRequirement: currentRequirement,
             currentCaseId: currentCaseId,
@@ -511,9 +510,9 @@ function saveMulticaseData() {
             lastSaved: new Date().toISOString()
         };
         
-        // Comprimir datos antes de guardar
         const compressedMulticaseData = compressData(multicaseData);
         localStorage.setItem('multicaseData', compressedMulticaseData);
+        console.log('✅ Datos multicaso guardados en localStorage');
 
         /* console.log('✅ Datos multicaso guardados exitosamente');
         console.log('📊 Requerimiento guardado:', currentRequirement.info.name || 'Sin nombre');
@@ -559,11 +558,16 @@ function saveMulticaseData() {
                 console.log(`🧹 Espacio liberado: ${(cleanup.cleanedSize / 1024).toFixed(2)} KB`);
             }
             
-            // 4. Intentar guardar de nuevo (comprimido)
+            // 4. Intentar guardar de nuevo en IndexedDB
             try {
-                const compressedMulticaseData = compressData(multicaseData);
-                localStorage.setItem('multicaseData', compressedMulticaseData);
-                console.log('✅ Datos multicaso guardados después de limpieza (comprimidos)');
+                if (typeof window.IndexedDBManager !== 'undefined' && window.IndexedDBManager.saveToIndexedDB) {
+                    window.IndexedDBManager.saveToIndexedDB('multicaseData', multicaseData);
+                    console.log('✅ Datos multicaso guardados en IndexedDB después de limpieza');
+                } else {
+                    const compressedMulticaseData = compressData(multicaseData);
+                    localStorage.setItem('multicaseData', compressedMulticaseData);
+                    console.log('✅ Datos multicaso guardados después de limpieza (comprimidos)');
+                }
                 
                 // Mostrar mensaje de éxito si hay función showWarning disponible
                 if (typeof showWarning === 'function') {
@@ -579,9 +583,14 @@ function saveMulticaseData() {
                     console.log(`🧹 Limpieza agresiva completada: ${(aggressiveResult.cleanedSize / 1024).toFixed(2)} KB liberados`);
                     
                     try {
-                        const compressedMulticaseData = compressData(multicaseData);
-                        localStorage.setItem('multicaseData', compressedMulticaseData);
-                        console.log('✅ Datos multicaso guardados después de limpieza agresiva (comprimidos)');
+                        if (typeof window.IndexedDBManager !== 'undefined' && window.IndexedDBManager.saveToIndexedDB) {
+                            window.IndexedDBManager.saveToIndexedDB('multicaseData', multicaseData);
+                            console.log('✅ Datos multicaso guardados en IndexedDB después de limpieza agresiva');
+                        } else {
+                            const compressedMulticaseData = compressData(multicaseData);
+                            localStorage.setItem('multicaseData', compressedMulticaseData);
+                            console.log('✅ Datos multicaso guardados después de limpieza agresiva (comprimidos)');
+                        }
                         
                         if (typeof showSuccess === 'function') {
                             showSuccess('¡Problema resuelto! Se liberó espacio adicional.', 'Limpieza exitosa');

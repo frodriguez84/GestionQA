@@ -450,17 +450,19 @@ async function getStorageStats() {
  * 🔄 Integra con el sistema de persistencia existente
  */
 function integrateWithExistingSystem() {
-    // Interceptar funciones de guardado existentes
+    // Interceptar funciones de guardado existentes - SOLO IndexedDB para evitar duplicación
     if (typeof window.saveData === 'function') {
         const originalSaveData = window.saveData;
         window.saveData = async function(key, data) {
             try {
-                // Guardar en IndexedDB si está disponible
+                // SOLO guardar en IndexedDB para evitar duplicación en localStorage
                 if (isInitialized) {
                     await saveToIndexedDB(key, data);
+                    console.log(`✅ ${key} guardado en IndexedDB (sin duplicación en localStorage)`);
+                    return true; // Indicar éxito sin duplicar en localStorage
                 }
                 
-                // Mantener compatibilidad con localStorage
+                // Fallback solo si IndexedDB no está disponible
                 return originalSaveData(key, data);
             } catch (error) {
                 console.error('❌ Error en saveData integrado:', error);
@@ -605,18 +607,37 @@ window.IndexedDBManager = {
     getStorageStats,
     isInitialized: () => isInitialized,
     migrationCompleted: () => migrationCompleted,
-    STORE_NAMES
+    STORE_NAMES,
+    // Funciones de conveniencia - LOCALSTORAGE PURO
+    saveToIndexedDB: async (key, data) => {
+        try {
+            localStorage.setItem(key, JSON.stringify(data));
+            console.log(`✅ ${key} guardado en localStorage`);
+            return true;
+        } catch (error) {
+            console.error('❌ Error guardando en localStorage:', error);
+            return false;
+        }
+    },
+    loadFromIndexedDB: async (key) => {
+        try {
+            const data = localStorage.getItem(key);
+            if (data) {
+                const parsed = JSON.parse(data);
+                console.log(`✅ ${key} cargado desde localStorage`);
+                return parsed;
+            }
+            return null;
+        } catch (error) {
+            console.error('❌ Error cargando desde localStorage:', error);
+            return null;
+        }
+    }
 };
 
-// Auto-inicializar cuando el DOM esté listo
-document.addEventListener('DOMContentLoaded', async () => {
-    try {
-        await initIndexedDB();
-        integrateWithExistingSystem();
-        console.log('✅ IndexedDB Manager integrado con el sistema existente');
-    } catch (error) {
-        console.error('❌ Error auto-inicializando IndexedDB:', error);
-    }
-});
+// DESHABILITADO: IndexedDB causaba problemas de sincronización
+// Usando localStorage puro para máxima estabilidad
+console.log('✅ IndexedDB deshabilitado - usando localStorage puro');
+integrateWithExistingSystem();
 
 console.log('🔧 IndexedDB Manager cargado - Versión 20250113d');

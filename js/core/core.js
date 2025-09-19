@@ -155,19 +155,69 @@ function loadFromStorage() {
 // ===============================================
 
 /**
- * Carga un requerimiento desde el dashboard
+ * Carga un requerimiento desde el dashboard (VERSIÓN INDEXEDDB)
  */
 function loadRequirementFromDashboard(requirementId) {
     try {
-        // Obtener datos del dashboard
-        const dashboardData = localStorage.getItem('dashboardData');
-        if (!dashboardData) {
-            console.warn('⚠️ No hay datos del dashboard disponibles');
+        // Obtener datos del dashboard desde IndexedDB
+        let dashboardData = null;
+        
+        if (typeof window.IndexedDBManager !== 'undefined' && window.IndexedDBManager.loadFromIndexedDB) {
+            // Intentar cargar desde IndexedDB
+            window.IndexedDBManager.loadFromIndexedDB('dashboardData').then(data => {
+                if (data && data.requirements) {
+                    const requirement = data.requirements.find(req => req.id === requirementId);
+                    if (requirement) {
+                        loadRequirementData(requirement);
+                    } else {
+                        console.warn('⚠️ Requerimiento no encontrado en IndexedDB');
+                    }
+                } else {
+                    console.warn('⚠️ No hay datos del dashboard en IndexedDB');
+                }
+            }).catch(() => {
+                // Fallback a localStorage
+                const fallbackData = localStorage.getItem('dashboardData');
+                if (fallbackData) {
+                    const data = JSON.parse(fallbackData);
+                    const requirement = data.requirements.find(req => req.id === requirementId);
+                    if (requirement) {
+                        loadRequirementData(requirement);
+                    }
+                }
+            });
+            return true;
+        } else {
+            // Fallback: cargar desde localStorage
+            dashboardData = localStorage.getItem('dashboardData');
+            if (!dashboardData) {
+                console.warn('⚠️ No hay datos del dashboard disponibles');
+                return false;
+            }
+            
+            const data = JSON.parse(dashboardData);
+            const requirement = data.requirements.find(req => req.id === requirementId);
+        }
+        
+        if (!requirement) {
+            console.warn('⚠️ Requerimiento no encontrado en el dashboard');
             return false;
         }
         
-        const data = JSON.parse(dashboardData);
-        const requirement = data.requirements.find(req => req.id === requirementId);
+        loadRequirementData(requirement);
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Error cargando requerimiento desde dashboard:', error);
+        return false;
+    }
+}
+
+/**
+ * Carga los datos de un requerimiento específico
+ */
+function loadRequirementData(requirement) {
+    try {
         
         if (!requirement) {
             console.warn('⚠️ Requerimiento no encontrado en el dashboard');
@@ -184,25 +234,28 @@ function loadRequirementFromDashboard(requirementId) {
                 tester: requirement.tester,
                 startDate: requirement.startDate || requirement.createdAt
             },
-            cases: requirement.cases || [],
+            // CRÍTICO: Si no hay casos o hay casos vacíos, crear UN SOLO caso vacío
+            cases: (requirement.cases && requirement.cases.length > 0 && requirement.cases.some(c => c.scenarios && c.scenarios.length > 0)) 
+                ? requirement.cases 
+                : [createEmptyCase()],
             createdAt: requirement.createdAt,
             updatedAt: requirement.updatedAt
         };
         
         // Establecer como requerimiento activo
-        currentRequirement = multicaseRequirement;
-        currentCaseId = multicaseRequirement.cases.length > 0 ? multicaseRequirement.cases[0].id : null;
-        multicaseMode = true;
+        window.currentRequirement = multicaseRequirement;
+        window.currentCaseId = multicaseRequirement.cases.length > 0 ? multicaseRequirement.cases[0].id : null;
+        window.multicaseMode = true;
         
         // CRÍTICO: Cargar el caso activo para que los escenarios estén disponibles en testCases
         if (multicaseRequirement.cases.length > 0 && multicaseRequirement.cases[0].id) {
-            // console.log('🔄 Cargando caso activo para disponibilizar escenarios...');
+            console.log('🔄 Cargando caso activo para disponibilizar escenarios...');
             if (typeof switchToCase === 'function') {
                 const success = switchToCase(multicaseRequirement.cases[0].id);
-                // console.log('📊 Resultado de switchToCase:', success ? 'Éxito' : 'Falló');
+                console.log('📊 Resultado de switchToCase:', success ? 'Éxito' : 'Falló');
             }
         } else {
-            // console.log('ℹ️ No hay casos en el requerimiento, limpiando variables globales...');
+            console.log('ℹ️ No hay casos en el requerimiento, limpiando variables globales...');
             // Solo limpiar si no hay casos
             if (typeof window !== 'undefined') {
                 window.testCases = [];
@@ -318,26 +371,22 @@ function initializeApp() {
     if (activeRequirementId) {
         // console.log('📥 Cargando requerimiento desde dashboard...');
         
-        // 🎯 PASO 1: Primero cargar datos existentes de la app
-        const loaded = loadMulticaseData();
+        // 🎯 PASO 1: LIMPIAR DATOS LEGACY Y CARGAR DESDE DASHBOARD
+        console.log('🧹 Limpiando datos legacy antes de cargar desde dashboard...');
         
-        if (loaded && window.currentRequirement && window.currentRequirement.cases && window.currentRequirement.cases.length > 0) {
-            // console.log('✅ Datos existentes en la app, manteniendo datos actuales');
-            // Si hay datos en la app, mantenerlos y solo sincronizar la información básica
-            if (typeof syncDashboardToApp === 'function') {
-                // console.log('🔄 Sincronizando solo información básica del dashboard...');
-                syncDashboardToApp(activeRequirementId);
-            }
+        // Limpiar datos legacy que causan problemas
+        localStorage.removeItem('multicaseData');
+        localStorage.removeItem('currentRequirement');
+        localStorage.removeItem('currentCaseId');
+        localStorage.removeItem('testCases');
+        
+        // Siempre cargar desde dashboard para requerimientos nuevos
+        if (typeof syncDashboardToApp === 'function') {
+            console.log('✅ Cargando requerimiento desde dashboard...');
+            syncDashboardToApp(activeRequirementId);
         } else {
-            // console.log('📂 No hay datos en la app, cargando desde dashboard...');
-            // Si no hay datos en la app, cargar desde el dashboard
-            if (typeof syncDashboardToApp === 'function') {
-                // console.log('✅ Usando syncDashboardToApp');
-                syncDashboardToApp(activeRequirementId);
-            } else {
-                // console.log('⚠️ Usando fallback loadRequirementFromDashboard');
-                loadRequirementFromDashboard(activeRequirementId);
-            }
+            console.log('⚠️ Usando fallback loadRequirementFromDashboard');
+            loadRequirementFromDashboard(activeRequirementId);
         }
         
         // Limpiar el ID activo
@@ -424,7 +473,83 @@ function initializeApp() {
     }, 50);
 
     // console.log('✅ Aplicación inicializada en modo multicaso únicamente');
+    
+    // 🎯 PASO FINAL: Verificar sincronización
+    setTimeout(() => {
+        verifySynchronization();
+    }, 2000);
 }
+
+/**
+ * Verifica que la sincronización entre dashboard y app funcione correctamente
+ */
+function verifySynchronization() {
+    try {
+        console.log('🔍 Verificando sincronización dashboard ↔ app...');
+        
+        // Verificar que IndexedDB esté disponible
+        if (typeof window.IndexedDBManager === 'undefined') {
+            console.error('❌ IndexedDBManager no está disponible');
+            return false;
+        }
+        
+        // Verificar que las funciones de sincronización existan
+        const functions = [
+            'loadRequirementFromDashboard',
+            'syncDashboardToApp',
+            'saveMulticaseData',
+            'loadMulticaseData'
+        ];
+        
+        functions.forEach(funcName => {
+            if (typeof window[funcName] !== 'function') {
+                console.warn(`⚠️ Función ${funcName} no está disponible globalmente`);
+            }
+        });
+        
+        console.log('✅ Verificación de sincronización completada');
+        return true;
+        
+    } catch (error) {
+        console.error('❌ Error verificando sincronización:', error);
+        return false;
+    }
+}
+
+// ===============================================
+// EXPOSICIÓN GLOBAL DE FUNCIONES CRÍTICAS
+// ===============================================
+
+// Función para crear un caso vacío
+function createEmptyCase() {
+    return {
+        id: `case_${Date.now()}`,
+        caseNumber: "1",
+        title: "Caso 1",
+        objective: "Casos de prueba principales",
+        prerequisites: '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        status: 'active',
+        scenarios: [],
+        inputVariableNames: ['Variable 1', 'Variable 2'],
+        stats: {
+            totalScenarios: 0,
+            totalHours: 0,
+            totalOK: 0,
+            totalNO: 0,
+            totalPending: 0,
+            successRate: 0,
+            cycles: []
+        }
+    };
+}
+
+// Exponer funciones de sincronización globalmente
+window.loadRequirementFromDashboard = loadRequirementFromDashboard;
+window.loadRequirementData = loadRequirementData;
+window.verifySynchronization = verifySynchronization;
+window.createEmptyCase = createEmptyCase;
 
 // 🎯 FUNCIÓN PARA OCULTAR INTERFAZ ORIGINAL
 function hideOriginalInterface() {
@@ -958,23 +1083,15 @@ function optimizeLocalStorageData() {
         
         let spaceSaved = 0;
         
-        // 2. Eliminar dashboardRequirements si es duplicado de dashboardData
-        if (dashboardData && dashboardRequirements) {
+        // 2. Eliminar dashboardRequirements completamente (ya no se usa)
+        if (dashboardRequirements) {
             try {
-                const dashboardDataParsed = decompressData(dashboardData);
-                const dashboardRequirementsParsed = decompressData(dashboardRequirements);
-                
-                // Si dashboardRequirements es un subconjunto de dashboardData, eliminarlo
-                if (dashboardDataParsed.requirements && 
-                    JSON.stringify(dashboardDataParsed.requirements) === JSON.stringify(dashboardRequirementsParsed)) {
-                    
-                    const size = new Blob([dashboardRequirements]).size;
-                    localStorage.removeItem('dashboardRequirements');
-                    spaceSaved += size;
-                    console.log(`✅ Eliminado dashboardRequirements duplicado: ${(size / 1024).toFixed(2)} KB`);
-                }
+                const size = new Blob([dashboardRequirements]).size;
+                localStorage.removeItem('dashboardRequirements');
+                spaceSaved += size;
+                console.log(`✅ Eliminado dashboardRequirements (obsoleto): ${(size / 1024).toFixed(2)} KB`);
             } catch (e) {
-                console.log('⚠️ No se pudo verificar duplicación de dashboard');
+                console.log('⚠️ No se pudo eliminar dashboardRequirements');
             }
         }
         
@@ -1065,6 +1182,9 @@ function cleanupLocalStorage() {
         'debugLogs',
         'tempData',
         'cache',
+        'dashboardRequirements', // Eliminar obsoleto
+        'currentRequirement',    // Eliminar duplicado
+        'testCases',            // Eliminar duplicado
         'sessionData',
         'oldData',
         'backup',
