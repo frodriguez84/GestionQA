@@ -1,5 +1,6 @@
 // ===============================================
-// SCRIPT-CASES.JS - CRUD Casos + Filtros + Renderizado
+// SCRIPT-CASES.JS - CRUD Casos + Filtros + Renderizado + Bug Tracking
+// Versión: 20250113d - Sistema de tracking de bugs corregido (sin columna tiempo)
 // ===============================================
 
 // ===============================================
@@ -545,9 +546,6 @@ window.duplicateTestCase = function (id) {
     duplicatedCase.evidence = []; // Limpiar evidencias
     
     // 🕐 LIMPIAR TODOS LOS TIMERS DEL ESCENARIO DUPLICADO
-    duplicatedCase.bugfixingTimer = null; // Sin timer de bugfixing
-    duplicatedCase.bugfixingStartTime = null; // Sin tiempo de inicio
-    duplicatedCase.bugfixingHours = 0; // Resetear horas de bugfixing
     duplicatedCase.timerRunning = false; // Sin timer corriendo
     duplicatedCase.timerType = null; // Sin tipo de timer
     duplicatedCase.timerStartTime = null; // Sin tiempo de inicio
@@ -868,6 +866,7 @@ window.renderTestCases = function () {
         tiempoHeader.style.textAlign = 'center';
     }
 
+
     // --- FIN ACTUALIZAR THEAD ---
 
     if (filteredCases.length === 0) {
@@ -898,11 +897,6 @@ window.renderTestCases = function () {
                         <input type="checkbox" ${isSelected ? 'checked' : ''} 
                                onchange="toggleCaseSelection(${testCase.id})" 
                                title="Seleccionar caso">
-                        ${testCase.bugfixingTimer?.state === 'RUNNING' ? `
-                            <span class="bugfixing-indicator" 
-                                  title="Timer de bugfixing activo: ${formatBugfixingTime((testCase.bugfixingTimer.accumulated || 0) + (testCase.bugfixingTimer.start ? (Date.now() - new Date(testCase.bugfixingTimer.start).getTime()) / 60000 : 0))}"
-                                  id="bugfixing-indicator-${testCase.id}">🐛</span>
-                        ` : ''}
                     </div>
                 </td>
                 
@@ -947,6 +941,7 @@ window.renderTestCases = function () {
                         title="Tiempo en horas (ej: 1.5 = 1 hora 30 min)">
                 </td>
                 
+                
                 <td class="col-evidencias">${evidenceCount > 0 ?
                 `<a href="#" onclick="viewEvidence(${testCase.id}); return false;" style="color: #3498db; text-decoration: underline; cursor: pointer;">🔎 ${evidenceCount} archivos</a>` :
                 'Sin evidencias'}</td>
@@ -961,12 +956,21 @@ window.renderTestCases = function () {
                             title="${activeTimerId === testCase.id ? 'Detener cronómetro' : 'Iniciar cronómetro'}">
                         ${activeTimerId === testCase.id ? '⏹️' : '⏱️'}
                     </button>
-                    ${testCase.status === 'NO' || testCase.bugfixingTimer?.state === 'RUNNING' ? `
-                    <button class="btn ${testCase.bugfixingTimer?.state === 'RUNNING' ? 'btn-danger' : 'btn-warning'} btn-small" 
-                            onclick="${testCase.bugfixingTimer?.state === 'RUNNING' ? 'stopBugfixingTimer' : 'startBugfixingTimer'}(${testCase.id})" 
-                            id="bugfixingBtn-${testCase.id}" 
-                            title="${testCase.bugfixingTimer?.state === 'RUNNING' ? 'Detener bugfixing' : 'Iniciar bugfixing'}">
-                        ${testCase.bugfixingTimer?.state === 'RUNNING' ? '⏹️' : '🐛'}
+                    ${testCase.status === 'NO' ? `
+                    <button class="btn ${testCase.hasBug ? 
+                        (testCase.bugState === 'bug_reported' ? 'btn-info' : 
+                         testCase.bugState === 'bug_returned' ? 'btn-warning' : 
+                         testCase.bugState === 'bug_fixed' ? 'btn-success' : 'btn-warning') : 'btn-warning'} btn-small" 
+                            onclick="markBug(${testCase.id})" 
+                            id="markBugBtn-${testCase.id}" 
+                            title="${testCase.hasBug ? 
+                                (testCase.bugState === 'bug_reported' ? 'Bug reportado a desarrollo' : 
+                                 testCase.bugState === 'bug_returned' ? 'Bug devuelto por desarrollo' : 
+                                 testCase.bugState === 'bug_fixed' ? 'Bug arreglado' : 'Marcar escenario con bug') : 'Marcar escenario con bug'}">
+                        ${testCase.hasBug ? 
+                            (testCase.bugState === 'bug_reported' ? '📤 Reportado' : 
+                             testCase.bugState === 'bug_returned' ? '🔄 Devuelto' : 
+                             testCase.bugState === 'bug_fixed' ? '✅ Arreglado' : '🐛 Marcar Bug') : '🐛 Marcar Bug'}
                     </button>
                     ` : ''}
                 </td>
@@ -995,6 +999,14 @@ window.renderTestCases = function () {
 
     // Reinicializar drag scroll (mantener funcionalidad existente)
     reinitializeDragScroll();
+    
+    // 🆕 RECALCULAR CONTADORES DE BUGS AL CARGAR DATOS (solo una vez)
+    if (typeof window.recalculateBugCounters === 'function' && !window.bugCountersInitialized) {
+        setTimeout(() => {
+            window.recalculateBugCounters();
+            window.bugCountersInitialized = true;
+        }, 100);
+    }
 }
 
 // ===============================================
@@ -1119,6 +1131,13 @@ window.updateManualTime = function(scenarioId, newTime) {
         // Actualizar estadísticas y UI
         updateAppStats();
         renderTestCases();
+        
+        // Actualizar botones de marcar bug después de cambiar tiempo
+        if (typeof updateAllMarkBugButtons === 'function') {
+            setTimeout(() => {
+                updateAllMarkBugButtons();
+            }, 100);
+        }
         
         // Actualizar estadísticas del requerimiento
         if (typeof updateMulticaseRequirementStats === 'function' && window.currentRequirement) {
@@ -1296,6 +1315,9 @@ window.updateStatusAndDate = function (id, value) {
 
     const testCase = testCases.find(tc => tc.id === id);
     if (testCase) {
+        // Guardar estado anterior para comparación
+        const previousStatus = testCase.status;
+        
         // Actualizar el estado
         testCase.status = value;
 
@@ -1315,6 +1337,14 @@ window.updateStatusAndDate = function (id, value) {
             testCase.executionDate = `${yyyy}-${mm}-${dd}`;
             console.log('📅 Fecha de ejecución establecida:', testCase.executionDate);
         }
+        
+        // 🆕 LÓGICA DE BUGS: Manejar re-testeo y resolución de bugs
+        if (previousStatus !== value && (value === 'OK' || value === 'NO')) {
+            // Verificar si es un re-testeo (mismo número de escenario, ciclo mayor)
+            if (typeof window.handleRetestBug === 'function') {
+                window.handleRetestBug(testCase.scenarioNumber, testCase.cycleNumber, value);
+            }
+        }
 
         // 🎯 CRÍTICO: Sincronizar INMEDIATAMENTE con multicaso
         if (typeof syncScenariosWithCurrentCase === 'function') {
@@ -1322,9 +1352,11 @@ window.updateStatusAndDate = function (id, value) {
             syncScenariosWithCurrentCase();
         }
 
-        // 🎯 CRÍTICO: Actualizar botones de bugfixing cuando cambie el estado
-        if (typeof updateAllBugfixingButtons === 'function') {
-            updateAllBugfixingButtons();
+        // 🎯 CRÍTICO: Actualizar botones de marcar bug cuando cambie el estado
+        if (typeof updateAllMarkBugButtons === 'function') {
+            setTimeout(() => {
+                updateAllMarkBugButtons();
+            }, 100);
         }
         
         // 🎯 CRÍTICO: Actualizar estadísticas de la UI
@@ -1429,6 +1461,217 @@ window.removeVarName = removeVarName;
 window.formatDateForDisplay = formatDateForDisplay;
 window.updateManualTime = updateManualTime;
 
+// ✅ FUNCIONES PARA MANEJAR BUGS
+window.markBug = function(scenarioId) {
+    const testCase = testCases.find(tc => tc.id === scenarioId);
+    if (!testCase) {
+        console.error('❌ Escenario no encontrado:', scenarioId);
+        return false;
+    }
+    
+    if (testCase.status !== 'NO') {
+        showError('Solo se pueden marcar bugs en escenarios con estado NO', 'Estado incorrecto');
+        return false;
+    }
+    
+    // Verificar si ya tiene bug marcado
+    if (testCase.hasBug) {
+        showInfo('Este escenario ya tiene un bug marcado', 'Bug ya marcado');
+        return false;
+    }
+    
+    // Marcar el escenario con bug
+    testCase.hasBug = true;
+    testCase.bugState = 'bug_reported';
+    testCase.bugMarkedDate = new Date();
+    
+    // Incrementar contador de bugs totales SOLO UNA VEZ por número de escenario
+    if (typeof window.updateBugCounters === 'function') {
+        // Verificar si ya existe un bug para este número de escenario
+        const existingBugForScenario = testCases.find(tc => 
+            tc.scenarioNumber === testCase.scenarioNumber && 
+            tc.id !== testCase.id && 
+            tc.hasBug
+        );
+        
+        if (!existingBugForScenario) {
+            window.updateBugCounters('increment_total');
+        }
+    }
+    
+    // Guardar cambios
+    if (typeof saveToStorage === 'function') {
+        saveToStorage();
+    }
+    
+    // Sincronizar con multicase para que se refleje en el dashboard
+    if (typeof syncScenariosWithCurrentCase === 'function') {
+        syncScenariosWithCurrentCase();
+    }
+    
+    // Sincronizar con dashboard si está disponible
+    if (typeof syncFromAppToDashboard === 'function') {
+        setTimeout(() => {
+            syncFromAppToDashboard();
+        }, 100);
+    }
+    
+    // Actualizar UI
+    renderTestCases();
+    
+    // Actualizar botones de marcar bug
+    if (typeof updateAllMarkBugButtons === 'function') {
+        updateAllMarkBugButtons();
+    }
+    
+    showSuccess(`Escenario ${testCase.scenarioNumber} marcado con bug`, 'Bug marcado');
+    console.log(`🐛 Bug marcado en escenario ${testCase.scenarioNumber}`);
+    
+    return true;
+};
+
+
+window.updateBugCounters = function(action, scenarioId = null) {
+    // Obtener contadores del requerimiento actual
+    if (!window.currentRequirement) return;
+    
+    const requirementId = window.currentRequirement.id;
+    
+    // Inicializar contadores si no existen
+    if (!window.bugCounters) {
+        window.bugCounters = {};
+    }
+    
+    if (!window.bugCounters[requirementId]) {
+        window.bugCounters[requirementId] = {
+            totalBugs: 0,
+            bugsResolved: 0
+        };
+    }
+    
+    switch (action) {
+        case 'increment_total':
+            window.bugCounters[requirementId].totalBugs++;
+            break;
+        case 'increment_resolved':
+            window.bugCounters[requirementId].bugsResolved++;
+            break;
+        case 'recalculate':
+            // Recalcular contadores basado en el estado actual de los escenarios
+            // IMPORTANTE: Solo contar UN bug por número de escenario (no por ciclo)
+            const scenariosWithBug = testCases.filter(tc => tc.hasBug);
+            const uniqueBugScenarios = new Set();
+            
+            scenariosWithBug.forEach(scenario => {
+                uniqueBugScenarios.add(scenario.scenarioNumber);
+            });
+            
+            window.bugCounters[requirementId].totalBugs = uniqueBugScenarios.size;
+            
+            // Contar bugs resueltos: solo UNO por número de escenario
+            const resolvedBugScenarios = new Set();
+            scenariosWithBug.forEach(scenario => {
+                if (scenario.bugState === 'bug_fixed') {
+                    resolvedBugScenarios.add(scenario.scenarioNumber);
+                }
+            });
+            window.bugCounters[requirementId].bugsResolved = resolvedBugScenarios.size;
+            break;
+    }
+    
+    // Guardar contadores
+    if (typeof saveToStorage === 'function') {
+        saveToStorage();
+    }
+    
+    // Actualizar dashboard si está disponible
+    if (typeof window.updateBugStats === 'function') {
+        window.updateBugStats();
+    }
+};
+
+// ✅ FUNCIÓN PARA RECALCULAR CONTADORES AL CARGAR DATOS
+window.recalculateBugCounters = function() {
+    if (!window.currentRequirement) return;
+    
+    // Evitar recálculos múltiples
+    if (window.recalculatingBugCounters) return;
+    window.recalculatingBugCounters = true;
+    
+    if (typeof window.updateBugCounters === 'function') {
+        window.updateBugCounters('recalculate');
+    }
+    
+    setTimeout(() => {
+        window.recalculatingBugCounters = false;
+    }, 500);
+};
+
+// ✅ LÓGICA DE RE-TESTEO Y RESOLUCIÓN DE BUGS
+window.handleRetestBug = function(scenarioNumber, cycle, newStatus) {
+    // Buscar todos los ciclos del mismo número de escenario
+    const allCycles = testCases.filter(tc => tc.scenarioNumber == scenarioNumber);
+    
+    if (allCycles.length === 0) return;
+    
+    // Encontrar el ciclo anterior (si existe)
+    const previousCycle = allCycles.find(tc => tc.cycleNumber < cycle && tc.hasBug);
+    
+    if (previousCycle) {
+        if (newStatus === 'OK') {
+            // Bug resuelto - marcar todos los ciclos como "arreglado"
+            allCycles.forEach(cycleScenario => {
+                if (cycleScenario.hasBug) {
+                    cycleScenario.bugState = 'bug_fixed';
+                    cycleScenario.bugResolvedDate = new Date();
+                }
+            });
+            
+            // Incrementar contador de bugs resueltos SOLO UNA VEZ
+            if (typeof window.updateBugCounters === 'function') {
+                // Verificar si ya se contó como resuelto ANTES de marcar como resuelto
+                const wasAlreadyResolved = allCycles.some(tc => tc.bugState === 'bug_fixed' && tc.bugResolvedDate);
+                if (!wasAlreadyResolved) {
+                    window.updateBugCounters('increment_resolved');
+                }
+            }
+            
+            showSuccess(`Bug del escenario ${scenarioNumber} resuelto`, 'Bug resuelto');
+            console.log(`✅ Bug resuelto en escenario ${scenarioNumber}`);
+            
+            // Actualizar botones después de resolver bug
+            if (typeof updateAllMarkBugButtons === 'function') {
+                setTimeout(() => {
+                    updateAllMarkBugButtons();
+                }, 100);
+            }
+            
+        } else if (newStatus === 'NO') {
+            // Bug no resuelto - cambiar estado anterior a "devuelto" y marcar nuevo como "reportado"
+            allCycles.forEach(cycleScenario => {
+                if (cycleScenario.hasBug && cycleScenario.bugState === 'bug_reported') {
+                    cycleScenario.bugState = 'bug_returned';
+                }
+            });
+            
+            // Marcar el nuevo ciclo como "reportado" si tiene bug
+            const currentCycle = allCycles.find(tc => tc.cycleNumber == cycle);
+            if (currentCycle && currentCycle.hasBug) {
+                currentCycle.bugState = 'bug_reported';
+            }
+            
+            console.log(`❌ Bug no resuelto en escenario ${scenarioNumber}, ciclo ${cycle}`);
+            
+            // Actualizar botones después de cambiar estados
+            if (typeof updateAllMarkBugButtons === 'function') {
+                setTimeout(() => {
+                    updateAllMarkBugButtons();
+                }, 100);
+            }
+        }
+    }
+};
+
 // DEBUG: Verificar que las funciones estén disponibles
 // console.log('🔍 DEBUG cases.js cargado:');
 // console.log('🔍 renderTestCases disponible:', typeof window.renderTestCases);
@@ -1440,63 +1683,54 @@ window.updateManualTime = updateManualTime;
 window.insertCaseInCorrectPosition = insertCaseInCorrectPosition;
 window.renumberScenariosAfter = renumberScenariosAfter;
 
-// ✅ FUNCIONES PARA BUGFIXING
-window.updateAllBugfixingButtons = function() {
-    // Actualizar todos los botones de bugfixing en la tabla
+// ✅ FUNCIONES PARA MARCAR BUGS
+window.updateAllMarkBugButtons = function() {
+    // Actualizar todos los botones de marcar bug en la tabla
     testCases.forEach(tc => {
-        const btn = document.getElementById(`bugfixingBtn-${tc.id}`);
-        const bugfixingTimer = tc.bugfixingTimer || { state: 'PAUSED', accumulated: 0 };
+        const btn = document.getElementById(`markBugBtn-${tc.id}`);
         
-        // Solo mostrar botón si el estado es NO o si hay un timer corriendo
-        const shouldShowButton = tc.status === 'NO' || bugfixingTimer.state === 'RUNNING';
+        // Solo mostrar botón si el estado es NO
+        const shouldShowButton = tc.status === 'NO';
         
         if (btn) {
             if (shouldShowButton) {
-                // Mostrar botón
+                // Mostrar botón con estado correspondiente
                 btn.style.display = 'inline-block';
                 
-                if (bugfixingTimer.state === 'RUNNING') {
-                    btn.innerHTML = '⏹️';
-                    btn.title = 'Detener bugfixing';
-                    btn.className = 'btn btn-danger btn-small';
-                    btn.onclick = () => stopBugfixingTimer(tc.id);
+                // Determinar el estado del botón basado en bugState
+                if (tc.hasBug) {
+                    switch (tc.bugState) {
+                        case 'bug_reported':
+                            btn.innerHTML = '📤 Reportado';
+                            btn.className = 'btn btn-info btn-small';
+                            btn.title = 'Bug reportado a desarrollo';
+                            // NO cambiar onclick - mantener funcionalidad
+                            break;
+                        case 'bug_returned':
+                            btn.innerHTML = '🔄 Devuelto';
+                            btn.className = 'btn btn-warning btn-small';
+                            btn.title = 'Bug devuelto por desarrollo';
+                            break;
+                        case 'bug_fixed':
+                            btn.innerHTML = '✅ Arreglado';
+                            btn.className = 'btn btn-success btn-small';
+                            btn.title = 'Bug arreglado';
+                            break;
+                        default:
+                            btn.innerHTML = '🐛 Marcar Bug';
+                            btn.className = 'btn btn-warning btn-small';
+                            btn.title = 'Marcar escenario con bug';
+                            btn.onclick = () => markBug(tc.id);
+                    }
                 } else {
-                    btn.innerHTML = '🐛';
-                    btn.title = 'Iniciar bugfixing';
+                    btn.innerHTML = '🐛 Marcar Bug';
                     btn.className = 'btn btn-warning btn-small';
-                    btn.onclick = () => startBugfixingTimer(tc.id);
+                    btn.title = 'Marcar escenario con bug';
+                    btn.onclick = () => markBug(tc.id);
                 }
             } else {
                 // Ocultar botón
                 btn.style.display = 'none';
-            }
-        }
-        
-        // 🆕 ACTUALIZAR INDICADOR VISUAL AL LADO DEL CHECKBOX
-        const indicator = document.getElementById(`bugfixing-indicator-${tc.id}`);
-        
-        if (bugfixingTimer.state === 'RUNNING') {
-            // Mostrar indicador si no existe
-            if (!indicator) {
-                const checkboxContainer = document.querySelector(`tr[data-case-id="${tc.id}"] .checkbox-container`);
-                if (checkboxContainer) {
-                    const currentTime = (bugfixingTimer.accumulated || 0) + (bugfixingTimer.start ? (Date.now() - new Date(bugfixingTimer.start).getTime()) / 60000 : 0);
-                    const indicatorHTML = `
-                        <span class="bugfixing-indicator" 
-                              title="Timer de bugfixing activo: ${formatBugfixingTime(currentTime)}"
-                              id="bugfixing-indicator-${tc.id}">🐛</span>
-                    `;
-                    checkboxContainer.insertAdjacentHTML('beforeend', indicatorHTML);
-                }
-            } else {
-                // Actualizar tooltip con tiempo actual
-                const currentTime = (bugfixingTimer.accumulated || 0) + (bugfixingTimer.start ? (Date.now() - new Date(bugfixingTimer.start).getTime()) / 60000 : 0);
-                indicator.title = `Timer de bugfixing activo: ${formatBugfixingTime(currentTime)}`;
-            }
-        } else {
-            // Ocultar indicador si existe
-            if (indicator) {
-                indicator.remove();
             }
         }
     });

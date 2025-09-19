@@ -117,9 +117,7 @@ function createRequirementCard(requirement) {
                     <div class="progress-line-2">
                         <span>Tiempo Tester: ${(requirement.stats.totalHours || 0).toFixed(1)} hs</span>
                         <span>|</span>
-                        <span>Tiempo bugfixing: ${(requirement.stats.bugfixingHours || 0).toFixed(1)} hs</span>
-                        <span>|</span>
-                        <span>Tiempo total: ${((requirement.stats.totalHours || 0) + (requirement.stats.bugfixingHours || 0)).toFixed(1)} hs</span>
+                        <span>Bugs: ${(requirement.stats.bugsResolved || 0)}/${(requirement.stats.totalBugs || 0)}</span>
                     </div>
                 </div>
                 <div class="progress-bar">

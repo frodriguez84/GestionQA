@@ -834,7 +834,8 @@ window.RealtimeSync = {
 // Auto-inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
-        initRealtimeSync();
+        // initRealtimeSync(); // DESACTIVADA TEMPORALMENTE PARA MEJORAR RENDIMIENTO
+        console.log('⚠️ Sincronización en tiempo real desactivada temporalmente para mejorar rendimiento');
     }, 1000);
 });
 

@@ -1,5 +1,6 @@
 // ===============================================
 // TIMERS.JS - Sistema de cronómetros completo
+// Versión: 20250113a - Eliminado toast de bugfixing timers
 // ===============================================
 
 // ===============================================
@@ -637,13 +638,7 @@ function restoreBugfixingTimers() {
         }
     });
     
-    if (restoredCount > 0) {
-        // Solo mostrar el toast una vez por sesión para evitar spam
-        if (!window.bugfixingTimersRestoredShown) {
-            showInfo(`${restoredCount} timers de bugfixing activos`, 'Timers activos');
-            window.bugfixingTimersRestoredShown = true;
-        }
-    }
+    // TOAST DE BUGFIXING TIMERS ELIMINADO - Sistema de bugs manual implementado
 }
 
 /**

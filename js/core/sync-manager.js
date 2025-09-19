@@ -23,12 +23,13 @@ function preserveBugfixingTimers(appCases, dashboardCases) {
                         ...appScenario.bugfixingTimer,
                         // Mantener el estado y tiempo acumulado
                     };
-                    const caseNumber = appCase.caseNumber || appCase.title || `Caso ${appCase.id.split('_')[1]}`;
-                    console.log(`🔄 Timer preservado para ${caseNumber}, Escenario ${appScenario.scenarioNumber} - Ciclo ${appScenario.cycleNumber}:`, {
-                        state: appScenario.bugfixingTimer.state,
-                        accumulated: appScenario.bugfixingTimer.accumulated,
-                        tiempoFormateado: `${Math.floor(appScenario.bugfixingTimer.accumulated / 60)}h ${Math.floor(appScenario.bugfixingTimer.accumulated % 60)}m`
-                    });
+                    // Log de timer preservado comentado para mejorar rendimiento
+                    // const caseNumber = appCase.caseNumber || appCase.title || `Caso ${appCase.id.split('_')[1]}`;
+                    // console.log(`🔄 Timer preservado para ${caseNumber}, Escenario ${appScenario.scenarioNumber} - Ciclo ${appScenario.cycleNumber}:`, {
+                    //     state: appScenario.bugfixingTimer.state,
+                    //     accumulated: appScenario.bugfixingTimer.accumulated,
+                    //     tiempoFormateado: `${Math.floor(appScenario.bugfixingTimer.accumulated / 60)}h ${Math.floor(appScenario.bugfixingTimer.accumulated % 60)}m`
+                    // });
                 }
             });
         }
@@ -119,7 +120,7 @@ function syncDashboardToApp(requirementId) {
                 });
                 
                 if (existingMulticaseData && existingMulticaseData.currentRequirement && existingMulticaseData.currentRequirement.cases && existingMulticaseData.currentRequirement.cases.length > 0) {
-                    console.log('🔄 PRESERVANDO timers desde multicaseData:', existingMulticaseData.currentRequirement.cases.length, 'casos');
+                    // console.log('🔄 PRESERVANDO timers desde multicaseData:', existingMulticaseData.currentRequirement.cases.length, 'casos');
                     preserveBugfixingTimers(existingMulticaseData.currentRequirement.cases, multicaseRequirement.cases);
                 } else {
                     console.log('⚠️ No hay casos para preservar en multicaseData');

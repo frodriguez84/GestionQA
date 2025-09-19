@@ -51,12 +51,36 @@ function createArchitectureBackup() {
             console.warn('⚠️ localStorage lleno, saltando backup de arquitectura');
             // Limpiar datos antiguos para hacer espacio
             try {
+                console.log('🧹 Limpiando datos antiguos para hacer espacio...');
+                
+                // Limpiar datos legacy
                 localStorage.removeItem('legacyTestCases');
                 localStorage.removeItem('legacyRequirementInfo');
                 localStorage.removeItem('legacyInputVariableNames');
                 localStorage.removeItem('architectureBackup');
+                
+                // Limpiar backups antiguos (más de 7 días)
+                const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+                const keysToRemove = [];
+                
+                for (let key in localStorage) {
+                    if (key.startsWith('architecture_backup_')) {
+                        const timestamp = parseInt(key.split('_')[2]);
+                        if (timestamp < sevenDaysAgo) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                }
+                
+                keysToRemove.forEach(key => localStorage.removeItem(key));
+                
+                if (keysToRemove.length > 0) {
+                    console.log(`🗑️ ${keysToRemove.length} backups antiguos eliminados`);
+                }
+                
                 // Intentar guardar de nuevo
                 localStorage.setItem('architectureBackup', JSON.stringify(backup));
+                console.log('✅ Backup de arquitectura creado exitosamente');
             } catch (retryError) {
                 console.warn('⚠️ No se pudo crear backup, continuando sin respaldo');
             }

@@ -57,7 +57,7 @@ async function initIndexedDB() {
         request.onsuccess = (event) => {
             db = event.target.result;
             isInitialized = true;
-            console.log('✅ IndexedDB inicializado correctamente');
+            // console.log('✅ IndexedDB inicializado correctamente');
             
             // Migrar datos desde localStorage
             migrateFromLocalStorage().then(() => {
@@ -141,7 +141,7 @@ function createObjectStores(database) {
  * 🔄 Migra datos desde localStorage a IndexedDB
  */
 async function migrateFromLocalStorage() {
-    console.log('🔄 Iniciando migración desde localStorage...');
+        // console.log('🔄 Iniciando migración desde localStorage...');
 
     try {
         // 1. Migrar requerimientos (dashboard)

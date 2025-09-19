@@ -42,7 +42,8 @@ function createRequirement(data) {
             totalPending: 0,
             successRate: 0,
             totalHours: 0,
-            bugfixingHours: 0
+            totalBugs: 0,
+            bugsResolved: 0
         }
     };
     
@@ -91,7 +92,8 @@ function updateRequirement(id, updates) {
             totalPending: 0,
             successRate: 0,
             totalHours: 0,
-            bugfixingHours: 0
+            totalBugs: 0,
+            bugsResolved: 0
         };
         
         // CRÍTICO: Sincronizar casos desde localStorage (multicaseData)
@@ -302,7 +304,8 @@ function calculateRealStatsFromCases(requirement) {
             totalPending: 0,
             successRate: 0,
             totalHours: 0,
-            bugfixingHours: 0
+            totalBugs: 0,
+            bugsResolved: 0
         };
     }
     
@@ -338,10 +341,36 @@ function calculateRealStatsFromCases(requirement) {
             stats.totalHours += scenario.testTime;
         }
         
-        // Sumar tiempo de bugfixing (en horas)
-        if (scenario.bugfixingTimer && scenario.bugfixingTimer.accumulated && typeof scenario.bugfixingTimer.accumulated === 'number') {
-            // Convertir minutos a horas
-            stats.bugfixingHours += scenario.bugfixingTimer.accumulated / 60;
+        // 🆕 CONTAR BUGS (solo una vez por número de escenario)
+        if (scenario.hasBug) {
+            // Solo incrementar si es el primer ciclo de este escenario con bug
+            const isFirstCycleWithBug = !requirement.cases.some(caseObj => 
+                caseObj.scenarios.some(s => 
+                    s.scenarioNumber === scenario.scenarioNumber && 
+                    s.id !== scenario.id && 
+                    s.hasBug && 
+                    s.cycleNumber < scenario.cycleNumber
+                )
+            );
+            
+            if (isFirstCycleWithBug) {
+                stats.totalBugs = (stats.totalBugs || 0) + 1;
+            }
+            
+            // Solo incrementar bugs resueltos si es el primer ciclo de este escenario con bug_fixed
+            const isFirstCycleWithBugFixed = scenario.bugState === 'bug_fixed' && 
+                !requirement.cases.some(caseObj => 
+                    caseObj.scenarios.some(s => 
+                        s.scenarioNumber === scenario.scenarioNumber && 
+                        s.id !== scenario.id && 
+                        s.bugState === 'bug_fixed' && 
+                        s.cycleNumber < scenario.cycleNumber
+                    )
+                );
+            
+            if (isFirstCycleWithBugFixed) {
+                stats.bugsResolved = (stats.bugsResolved || 0) + 1;
+            }
         }
     });
     
