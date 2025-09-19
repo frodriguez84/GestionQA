@@ -15,7 +15,7 @@ class UpdateManager {
         
         if ('serviceWorker' in navigator) {
             try {
-                this.swRegistration = await navigator.serviceWorker.register('/js/service-worker.js');
+                this.swRegistration = await navigator.serviceWorker.register('/sw.js');
                 console.log('🔧 UpdateManager: Service Worker registrado exitosamente');
                 
                 this.setupEventListeners();
@@ -114,10 +114,10 @@ class UpdateManager {
                     ${version ? `<br><small>Versión ${version}</small>` : ''}
                 </div>
                 <div class="update-actions">
-                    <button class="btn-update" onclick="updateManager.applyUpdate()">
+                    <button class="btn-update" onclick="window.updateManager?.applyUpdate() || window.location.reload()">
                         Actualizar Ahora
                     </button>
-                    <button class="btn-later" onclick="updateManager.hideNotification()">
+                    <button class="btn-later" onclick="window.updateManager?.hideNotification() || document.getElementById('update-notification')?.remove()">
                         Más Tarde
                     </button>
                 </div>
@@ -306,15 +306,19 @@ class UpdateManager {
 
 let updateManager;
 
+// Inicializar inmediatamente para que esté disponible para los botones
+updateManager = new UpdateManager();
+
+// Exponer funciones globalmente inmediatamente
+window.updateManager = updateManager;
+window.forceUpdate = () => updateManager.forceClearCache();
+window.checkUpdates = () => updateManager.forceCheck();
+
+console.log('✅ UpdateManager inicializado y funciones expuestas globalmente');
+
+// También ejecutar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-    updateManager = new UpdateManager();
-    
-    // Exponer funciones globalmente
-    window.updateManager = updateManager;
-    window.forceUpdate = () => updateManager.forceClearCache();
-    window.checkUpdates = () => updateManager.forceCheck();
-    
-    console.log('✅ UpdateManager inicializado y funciones expuestas globalmente');
+    console.log('✅ DOM listo - UpdateManager ya inicializado');
 });
 
 // ===============================================

@@ -345,15 +345,9 @@ function initializeApp() {
         // console.log('🧹 ID de requerimiento activo limpiado');
     } else {
         // console.log('📂 No hay requerimiento activo, cargando datos existentes...');
-        // 🎯 PASO 2: Cargar datos usando persistencia unificada
-        if (typeof window.GestorCP !== 'undefined' && window.GestorCP.Storage) {
-            // Cargando datos con persistencia unificada...
-            const loaded = window.GestorCP.Storage.load();
-            
-            if (!loaded) {
-                // La estructura inicial se crea automáticamente en load()
-            }
-        } else if (typeof loadMulticaseData === 'function') {
+        // 🎯 PASO 2: Cargar datos usando sistema multicaso
+        // window.GestorCP.Storage fue eliminado durante la limpieza legacy
+        if (typeof loadMulticaseData === 'function') {
             // Fallback al sistema anterior si no está disponible el unificado
             const loaded = loadMulticaseData();
             
@@ -376,21 +370,9 @@ function initializeApp() {
         console.error('❌ Error: Se intentó cargar requerimiento pero no se estableció');
     }
 
-    // 🎯 PASO 3: Inicializar sistema unificado de datos
-    if (typeof window.GestorCP !== 'undefined' && window.GestorCP.Data) {
-        window.GestorCP.Data.initialize();
-        // Sistema unificado inicializado
-    }
-
-    // 🎯 PASO 4: Migrar datos legacy al sistema unificado
-    if (typeof migrateLegacyToUnified === 'function') {
-        const migrationSuccess = migrateLegacyToUnified();
-        if (!migrationSuccess) {
-            if (typeof restoreArchitectureBackup === 'function') {
-                restoreArchitectureBackup();
-            }
-        }
-    }
+    // 🎯 PASO 3: Sistema unificado eliminado durante limpieza legacy
+    // Las funciones migrateLegacyToUnified y restoreArchitectureBackup fueron eliminadas
+    // junto con window.GestorCP.Data durante la limpieza legacy
 
     // 🎯 PASO 3: Configurar event listeners esenciales SOLO para multicaso
     setupEssentialEventListeners();
