@@ -274,9 +274,6 @@ function createRequirementHeader() {
             <button class="btn btn-warning btn-small" onclick="goToDashboard()">
                 ✏️ Editar Requerimiento
             </button>
-            <button class="btn btn-primary btn-small" onclick="openRequirementSaveLoad()" style="display: none;">
-                💾 Guardar/Cargar
-            </button>
         </div>
     `;
 

@@ -263,7 +263,7 @@ body {
     gap: 6px;
     margin-top: 3px;
     opacity: 0.9;
-    font-size: 0.85em;
+    font-size: 0.8em;
 }
 
 .requirement-separator {
@@ -360,6 +360,7 @@ body {
     display: flex;
     gap: 8px;
     justify-content: center;
+    margin-top: 0;
 }
 
 .requirement-actions .btn {
