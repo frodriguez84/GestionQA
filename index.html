@@ -578,8 +578,7 @@
     <!-- Librería de compresión -->
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
     
-    <!-- Funciones de compresión -->
-    <script src="js/compression-utils.js?v=20250111b"></script>
+    <!-- Funciones de compresión (moved to utils) -->
     
     <!-- Scripts principales - ORDEN CORRECTO PARA MULTICASO -->
     
@@ -595,10 +594,7 @@
     <!-- SYNC SYSTEM (Real-time synchronization) -->
     <script src="js/sync/realtime-sync.js?v=20250113a"></script>
     
-    <!-- OPTIMIZATION (Performance) -->
-    <script src="js/optimization/event-system.js?v=20250111a"></script>
-    <script src="js/optimization/lazy-loader.js?v=20250111a"></script>
-    <script src="js/optimization/search-optimizer.js?v=20250111a"></script>
+    <!-- OPTIMIZATION (Performance) - REMOVED (not used) -->
     <!-- UPDATE SYSTEM (Automatic updates) -->
     <script src="js/version-manager.js?v=20250112a"></script>
     <script src="js/update-manager.js?v=20250112d"></script>
@@ -619,29 +615,22 @@
     <!-- 🔧 HERRAMIENTAS DE DESARROLLO -->
     <script src="js/utils/dev-tools.js?v=20250113a"></script>
     
-    <script src="js/optimization/smart-cache.js?v=20250111a"></script>
-    <script src="js/optimization/dom-optimizer.js?v=20250111a"></script>
-    <script src="js/optimization/input-optimizer.js?v=20250111a"></script>
-    <script src="js/optimization/virtual-scroll.js?v=20250111a"></script>
+    <!-- OPTIMIZATION FILES REMOVED (not used) -->
     
     <!-- CORE (Core functionality) -->
     <script src="js/core/core.js?v=20250112d"></script>
     <script src="js/core/multicase-core.js?v=20250112k"></script>
     <script src="js/core/sync-manager.js?v=20250112a"></script>
     <script src="js/core/timers.js?v=20250111u"></script>
-    <script src="js/core/bugfixing-timers.js?v=20250112b"></script>
+    <!-- <script src="js/core/bugfixing-timers.js?v=20250112b"></script> -->
     
     <!-- ARCHITECTURE MIGRATION (Safe migration system) -->
     <script src="js/architecture-migration.js?v=20250112e"></script>
     <script src="js/unified-data-system.js?v=20250112d"></script>
     <script src="js/unified-persistence.js?v=20250112d"></script>
-    <script src="js/legacy-cleanup-final.js?v=20250112d"></script>
-    <script src="js/migration-test.js?v=20250112d"></script>
+    <!-- LEGACY CLEANUP FILES REMOVED (no longer needed) -->
     
-    <!-- LEGACY (Migration) -->
-    <script src="js/legacy/legacy-cleanup.js?v=20250111a"></script>
-    <script src="js/legacy/legacy-adapter.js?v=20250111c"></script>
-    <script src="js/legacy/data-migration.js?v=20250111a"></script>
+    <!-- LEGACY (Migration) - REMOVED (no longer needed) -->
     
     <!-- UI (User Interface) -->
     <script src="js/ui/multicase-ui.js?v=20250112j"></script>

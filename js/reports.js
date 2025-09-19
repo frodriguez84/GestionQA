@@ -224,11 +224,11 @@ function generateReportContent() {
         .sort((a, b) => parseInt(a) - parseInt(b))
         .forEach(cycle => {
             const stats = metrics.cycleStats[cycle];
-            content += `   • Ciclo ${cycle}: ${stats.totalTime.toFixed(1)}h (${stats.totalCases} casos)\n`;
+            content += `   • Ciclo ${cycle}: ${stats.totalTime.toFixed(1)}hs (${stats.totalCases} escenarios)\n`;
         });
 
     if (metrics.casesWithoutTime > 0) {
-        content += `⚠️ Casos sin tiempo registrado: ${metrics.casesWithoutTime}\n`;
+        content += `⚠️ Escenarios sin tiempo registrado: ${metrics.casesWithoutTime}\n`;
     }
     content += '\n';
 
@@ -449,11 +449,11 @@ async function generateReportPDF() {
             .sort((a, b) => parseInt(a) - parseInt(b))
             .forEach(cycle => {
                 const stats = metrics.cycleStats[cycle];
-                addText(`  • Ciclo ${cycle}: ${stats.totalTime.toFixed(1)}h (${stats.totalCases} casos)`);
+                addText(`  • Ciclo ${cycle}: ${stats.totalTime.toFixed(1)}hs (${stats.totalCases} escenarios)`);
             });
 
         if (metrics.casesWithoutTime > 0) {
-            addText(`Casos sin tiempo registrado: ${metrics.casesWithoutTime}`);
+            addText(`Escenarios sin tiempo registrado: ${metrics.casesWithoutTime}`);
         }
         yPosition += 5;
 
@@ -689,7 +689,7 @@ function generateGlobalReportContent() {
     content += `Tiempo total por ciclo:\n`;
     Object.keys(m.cycleStats).sort((a, b) => parseInt(a) - parseInt(b)).forEach(cycle => {
         const cs = m.cycleStats[cycle];
-        content += ` • Ciclo ${cycle}: ${cs.totalTime.toFixed(1)} horas (${cs.totalCases} casos)\n`;
+        content += ` • Ciclo ${cycle}: ${cs.totalTime.toFixed(1)} horas (${cs.totalCases} escenarios)\n`;
     });
     content += '\n';
 
@@ -847,7 +847,7 @@ async function generateGlobalReportPDF() {
     addText('Tiempo total por ciclo:', 11, true);
     Object.keys(m.cycleStats).sort((a,b)=>parseInt(a)-parseInt(b)).forEach(cycle => {
       const cs = m.cycleStats[cycle];
-      addText(` • Ciclo ${cycle}: ${cs.totalTime.toFixed(1)} horas (${cs.totalCases} casos)`);
+      addText(` • Ciclo ${cycle}: ${cs.totalTime.toFixed(1)} horas (${cs.totalCases} escenarios)`);
     });
     yPosition += 5;
 
