@@ -255,6 +255,44 @@ async function syncDashboardToApp(requirementId) {
             if (typeof setupLateEventListeners === 'function') {
                 setupLateEventListeners();
             }
+            // Reconfigurar event listeners ESENCIALES (filtros, inputs)
+            if (typeof setupEssentialEventListeners === 'function') {
+                try { setupEssentialEventListeners(); } catch(_) {}
+            }
+            
+            // 🎯 CRÍTICO: Asegurar que los filtros funcionen tras sincronización (esperar DOM)
+            const runFilters = () => {
+                try {
+                    if (typeof window.updateFilters === 'function') window.updateFilters();
+                    if (typeof window.applyFilters === 'function') window.applyFilters();
+                    console.log('✅ Filtros reconfigurados tras sincronización dashboard → app');
+                } catch (error) {
+                    console.error('❌ Error reconfigurando filtros tras sincronización:', error);
+                }
+            };
+            setTimeout(() => {
+                if (window.__filtersReady) {
+                    runFilters();
+                } else {
+                    window.__onFiltersReadyCallbacks = window.__onFiltersReadyCallbacks || [];
+                    window.__onFiltersReadyCallbacks.push(runFilters);
+                }
+            }, 200);
+            // 🧩 FALLBACK: ejecutar filtros después de un delay más largo por si el DOM aún no está
+            setTimeout(() => {
+                console.log('🔍 FALLBACK: Intentando aplicar filtros tras 800ms...');
+                try {
+                    if (typeof window.ensureFiltersReady === 'function') {
+                        window.ensureFiltersReady(8, 200);
+                    } else {
+                        console.log('⚠️ ensureFiltersReady no disponible, intentando directo...');
+                        if (typeof window.updateFilters === 'function') window.updateFilters();
+                        if (typeof window.applyFilters === 'function') window.applyFilters();
+                    }
+                } catch (e) {
+                    console.error('❌ Error en fallback de filtros:', e);
+                }
+            }, 800);
         }, 100);
         
         console.log(`✅ Requerimiento "${requirement.name}" sincronizado a la app`);
@@ -411,8 +449,12 @@ function syncAppToDashboard() {
         
         localStorage.setItem('debugLogs', JSON.stringify(debugLogs));
         
-        // Calcular estadísticas reales
-        requirement.stats = calculateRealStats(window.currentRequirement);
+        // Calcular estadísticas reales usando módulo unificado
+        if (window.Stats && typeof window.Stats.calcRequirementStats === 'function') {
+            requirement.stats = window.Stats.calcRequirementStats(window.currentRequirement);
+        } else {
+            requirement.stats = calculateRealStats(window.currentRequirement);
+        }
         
         // DEBUG CRÍTICO: Verificar casos antes de guardar en dashboard
         /* console.log('🔍 DEBUG syncAppToDashboard - Casos antes de guardar:', requirement.cases?.length || 0);

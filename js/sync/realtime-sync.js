@@ -728,6 +728,9 @@ function applySyncData(syncData) {
         
         if (syncData.testCases) {
             window.testCases = syncData.testCases;
+            if (Array.isArray(syncData.testCases)) {
+                try { testCases = [...syncData.testCases]; } catch(_) {}
+            }
         }
         
         if (syncData.currentCaseId) {
@@ -800,6 +803,7 @@ window.RealtimeSync = {
                 const parsedData = JSON.parse(savedData);
                 if (Array.isArray(parsedData)) {
                     window.testCases = parsedData;
+                    try { testCases = [...parsedData]; } catch(_) {}
                     console.log('🔄 Datos restaurados desde localStorage:', parsedData.length, 'escenarios');
                     return true;
                 }
@@ -817,6 +821,7 @@ window.RealtimeSync = {
                 const parsedData = JSON.parse(savedData);
                 if (Array.isArray(parsedData)) {
                     window.testCases = parsedData;
+                    try { testCases = [...parsedData]; } catch(_) {}
                     console.log('✅ Datos recuperados:', parsedData.length, 'escenarios');
                     
                     // Actualizar UI

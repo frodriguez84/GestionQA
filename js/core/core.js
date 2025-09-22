@@ -111,6 +111,7 @@ function loadFromStorage() {
         
         if (savedTestCases) {
             testCases = savedTestCases;
+            try { window.testCases = [...savedTestCases]; } catch(_) {}
         }
         
         if (savedInputVariables) {
@@ -503,9 +504,10 @@ function initializeApp() {
             updateStats();
         }
         // 🎯 CRÍTICO: Actualizar filtros después de cargar datos
-        if (typeof updateFilters === 'function') {
+        if (typeof window.ensureFiltersReady === 'function') {
+            window.ensureFiltersReady(12, 120);
+        } else if (typeof updateFilters === 'function') {
             updateFilters();
-            // console.log('✅ Filtros actualizados automáticamente después de inicialización');
         }
         
         // 🎯 CRÍTICO: Restaurar timers de bugfixing
@@ -706,7 +708,9 @@ function setupEssentialEventListeners() {
     const searchInput = document.getElementById('searchInput');
     if (searchInput) {
         searchInput.addEventListener('input', () => {
-            if (typeof window.applyFilters === 'function') {
+            if (window.__applyFiltersRef) {
+                window.__applyFiltersRef();
+            } else if (typeof window.applyFilters === 'function') {
                 window.applyFilters();
             }
         });
@@ -715,28 +719,44 @@ function setupEssentialEventListeners() {
     const testerFilter = document.getElementById('testerFilter');
     if (testerFilter) {
         testerFilter.addEventListener('change', () => {
-            if (typeof applyFilters === 'function') applyFilters();
+            if (window.__applyFiltersRef) {
+                window.__applyFiltersRef();
+            } else if (typeof applyFilters === 'function') {
+                applyFilters();
+            }
         });
     }
 
     const statusFilter = document.getElementById('statusFilter');
     if (statusFilter) {
         statusFilter.addEventListener('change', () => {
-            if (typeof applyFilters === 'function') applyFilters();
+            if (window.__applyFiltersRef) {
+                window.__applyFiltersRef();
+            } else if (typeof applyFilters === 'function') {
+                applyFilters();
+            }
         });
     }
 
     const dateFromFilter = document.getElementById('dateFromFilter');
     if (dateFromFilter) {
         dateFromFilter.addEventListener('change', () => {
-            if (typeof applyFilters === 'function') applyFilters();
+            if (window.__applyFiltersRef) {
+                window.__applyFiltersRef();
+            } else if (typeof applyFilters === 'function') {
+                applyFilters();
+            }
         });
     }
 
     const dateToFilter = document.getElementById('dateToFilter');
     if (dateToFilter) {
         dateToFilter.addEventListener('change', () => {
-            if (typeof applyFilters === 'function') applyFilters();
+            if (window.__applyFiltersRef) {
+                window.__applyFiltersRef();
+            } else if (typeof applyFilters === 'function') {
+                applyFilters();
+            }
         });
     }
 
@@ -1167,9 +1187,22 @@ if (document.readyState === 'loading') {
             if (typeof window.switchToCase === 'function' && window.currentCaseId) window.switchToCase(window.currentCaseId);
 
             if (typeof window.updateMulticaseUI === 'function') window.updateMulticaseUI();
-            if (typeof window.renderTestCases === 'function') window.renderTestCases();
-            if (typeof window.updateAppStats === 'function') window.updateAppStats();
-            if (typeof window.updateFilters === 'function') window.updateFilters();
+        if (typeof window.renderTestCases === 'function') window.renderTestCases();
+        if (typeof window.updateAppStats === 'function') window.updateAppStats();
+        if (typeof window.updateFilters === 'function') window.updateFilters();
+        if (typeof window.applyFilters === 'function') window.applyFilters();
+        
+        // 🧩 Asegurar filtros tras inicialización completa
+        setTimeout(() => {
+            console.log('🔍 CORE INIT: Aplicando filtros tras inicialización...');
+            try {
+                if (typeof window.ensureFiltersReady === 'function') {
+                    window.ensureFiltersReady(10, 150);
+                }
+            } catch (e) {
+                console.error('❌ Error en core init filters:', e);
+            }
+        }, 1000);
             if (typeof window.updateRequirementButtons === 'function') window.updateRequirementButtons();
 
             console.log(`✅ Proyecto importado (hotfix) desde ${fileName}`);

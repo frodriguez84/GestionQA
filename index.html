@@ -642,8 +642,11 @@
     <!-- OPTIMIZATION FILES REMOVED (not used) -->
     
     <!-- CORE (Core functionality) -->
+    <script src="js/core/stats.js?v=20250113a"></script>
     <script src="js/core/core.js?v=20250113a"></script>
     <script src="js/core/multicase-core.js?v=20250113a"></script>
+    <script src="js/utils/storage-cleaner.js?v=20250113a"></script>
+    <script src="js/utils/backup-manager.js?v=20250113a"></script>
     <script src="js/core/sync-manager.js?v=20250112a"></script>
     <script src="js/core/timers.js?v=20250111u"></script>
     <!-- <script src="js/core/bugfixing-timers.js?v=20250112b"></script> -->
@@ -813,6 +816,60 @@
                         if (typeof updateRequirementButtons === 'function') {
                             updateRequirementButtons();
                         }
+                        // 🧩 Asegurar filtros listos y aplicados tras construir la UI
+                        setTimeout(() => {
+                            console.log('🔍 UI READY: Intentando aplicar filtros...');
+                            console.log('🔍 DOM estado:', {
+                                testerFilter: !!document.getElementById('testerFilter'),
+                                statusFilter: !!document.getElementById('statusFilter'),
+                                searchInput: !!document.getElementById('searchInput'),
+                                testCases: (window.testCases || []).length,
+                                testCasesGlobal: (typeof testCases !== 'undefined' ? testCases.length : 'undefined')
+                            });
+                            try {
+                                if (typeof window.updateFilters === 'function') {
+                                    console.log('🔍 Ejecutando updateFilters...');
+                                    window.updateFilters();
+                                }
+                                if (typeof window.applyFilters === 'function') {
+                                    console.log('🔍 Ejecutando applyFilters...');
+                                    window.applyFilters();
+                                }
+                                
+                                // 🔧 CRÍTICO: Reconectar event listeners de filtros
+                                console.log('🔧 Reconectando event listeners de filtros...');
+                                const searchInput = document.getElementById('searchInput');
+                                const testerFilter = document.getElementById('testerFilter');
+                                const statusFilter = document.getElementById('statusFilter');
+                                const dateFromFilter = document.getElementById('dateFromFilter');
+                                const dateToFilter = document.getElementById('dateToFilter');
+                                
+                                if (searchInput) {
+                                    searchInput.removeEventListener('input', window.__applyFiltersRef);
+                                    searchInput.addEventListener('input', window.__applyFiltersRef || window.applyFilters);
+                                }
+                                if (testerFilter) {
+                                    testerFilter.removeEventListener('change', window.__applyFiltersRef);
+                                    testerFilter.addEventListener('change', window.__applyFiltersRef || window.applyFilters);
+                                }
+                                if (statusFilter) {
+                                    statusFilter.removeEventListener('change', window.__applyFiltersRef);
+                                    statusFilter.addEventListener('change', window.__applyFiltersRef || window.applyFilters);
+                                }
+                                if (dateFromFilter) {
+                                    dateFromFilter.removeEventListener('change', window.__applyFiltersRef);
+                                    dateFromFilter.addEventListener('change', window.__applyFiltersRef || window.applyFilters);
+                                }
+                                if (dateToFilter) {
+                                    dateToFilter.removeEventListener('change', window.__applyFiltersRef);
+                                    dateToFilter.addEventListener('change', window.__applyFiltersRef || window.applyFilters);
+                                }
+                                
+                                console.log('✅ Filtros aplicados y event listeners reconectados');
+                            } catch (e) {
+                                console.error('❌ Error aplicando filtros tras UI ready:', e);
+                            }
+                        }, 500);
                         setTimeout(() => { finishLoader(); setTimeout(loadHeavyLibs, 200); }, 300);
                     });
                 }, 200);

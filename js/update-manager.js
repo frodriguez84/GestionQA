@@ -37,14 +37,16 @@ class UpdateManager {
         this.swRegistration.addEventListener('updatefound', () => {
             console.log('🔄 UpdateManager: Nueva versión detectada');
             this.updateAvailable = true;
-            this.showUpdateNotification();
+            // Mostrar solo el indicador discreto inicialmente
+            this.showUpdateIndicator();
         });
         
         // Escuchar mensajes del Service Worker
         navigator.serviceWorker.addEventListener('message', (event) => {
             if (event.data.updateAvailable) {
                 this.updateAvailable = true;
-                this.showUpdateNotification(event.data.version);
+                // Mostrar solo el indicador discreto inicialmente
+                this.showUpdateIndicator(event.data.version);
             }
         });
         
@@ -86,7 +88,8 @@ class UpdateManager {
                 messageChannel.port1.onmessage = (event) => {
                     if (event.data.updateAvailable) {
                         this.updateAvailable = true;
-                        this.showUpdateNotification(event.data.version);
+                        // Mostrar solo el indicador discreto inicialmente
+                        this.showUpdateIndicator(event.data.version);
                     }
                 };
                 
@@ -102,6 +105,91 @@ class UpdateManager {
     }
     
     showUpdateNotification(version = null) {
+        // No mostrar si ya existe una notificación
+        if (document.getElementById('update-notification')) {
+            return;
+        }
+
+        // Mostrar solo el indicador discreto inicialmente
+        this.showUpdateIndicator(version);
+    }
+    
+    showUpdateIndicator(version = null) {
+        // Buscar barra de navegación existente
+        const navBar = document.querySelector('.navbar') || 
+                      document.querySelector('nav') || 
+                      document.querySelector('.header') ||
+                      document.querySelector('.top-bar');
+        
+        if (!navBar) return;
+        
+        // No mostrar si ya existe el indicador
+        if (document.getElementById('update-indicator')) {
+            return;
+        }
+        
+        const indicator = document.createElement('div');
+        indicator.id = 'update-indicator';
+        indicator.className = 'update-indicator';
+        indicator.innerHTML = `
+            <span class="update-badge" title="Nueva versión disponible - Click para actualizar" onclick="window.updateManager?.showUpdateNotification()">
+                🔄 Actualizar
+            </span>
+        `;
+        
+        // Añadir estilos para el indicador
+        if (!document.getElementById('update-indicator-styles')) {
+            const styles = document.createElement('style');
+            styles.id = 'update-indicator-styles';
+            styles.textContent = `
+                .update-indicator {
+                    position: absolute;
+                    top: 8px;
+                    right: 8px;
+                    z-index: 1000;
+                }
+                
+                .update-badge {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 4px 8px;
+                    border-radius: 12px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+                    border: 1px solid rgba(255,255,255,0.2);
+                    transition: all 0.2s;
+                    animation: pulse 2s infinite;
+                }
+                
+                .update-badge:hover {
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                }
+                
+                @keyframes pulse {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0.7; }
+                }
+            `;
+            document.head.appendChild(styles);
+        }
+        
+        // Asegurar que la barra de navegación tenga posición relativa
+        if (getComputedStyle(navBar).position === 'static') {
+            navBar.style.position = 'relative';
+        }
+        
+        navBar.appendChild(indicator);
+    }
+    
+    showUpdateNotification() {
+        // Si ya existe la notificación, no hacer nada
+        if (document.getElementById('update-notification')) {
+            return;
+        }
+        
         // Crear notificación de actualización
         const notification = document.createElement('div');
         notification.id = 'update-notification';
@@ -111,7 +199,7 @@ class UpdateManager {
                 <div class="update-icon">🔄</div>
                 <div class="update-text">
                     <strong>Nueva versión disponible</strong>
-                    ${version ? `<br><small>Versión ${version}</small>` : ''}
+                    <br><small>Se recomienda actualizar para obtener las últimas mejoras</small>
                 </div>
                 <div class="update-actions">
                     <button class="btn-update" onclick="window.updateManager?.applyUpdate() || window.location.reload()">
@@ -135,12 +223,13 @@ class UpdateManager {
                     right: 20px;
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
                     color: white;
-                    padding: 20px;
-                    border-radius: 12px;
-                    box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+                    padding: 16px;
+                    border-radius: 8px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
                     z-index: 10000;
-                    max-width: 350px;
+                    max-width: 300px;
                     animation: slideIn 0.3s ease-out;
+                    border: 1px solid rgba(255,255,255,0.1);
                 }
                 
                 .update-content {
@@ -162,16 +251,16 @@ class UpdateManager {
                 
                 .update-actions {
                     display: flex;
-                    gap: 10px;
-                    margin-top: 10px;
+                    gap: 8px;
+                    margin-top: 8px;
                 }
                 
                 .btn-update, .btn-later {
-                    padding: 8px 16px;
+                    padding: 6px 12px;
                     border: none;
-                    border-radius: 6px;
+                    border-radius: 4px;
                     cursor: pointer;
-                    font-size: 12px;
+                    font-size: 11px;
                     font-weight: 600;
                     transition: all 0.2s;
                 }
@@ -225,12 +314,12 @@ class UpdateManager {
         
         document.body.appendChild(notification);
         
-        // Auto-ocultar después de 30 segundos
+        // Auto-ocultar después de 15 segundos si no se interactúa
         setTimeout(() => {
             if (document.getElementById('update-notification')) {
                 this.hideNotification();
             }
-        }, 30000);
+        }, 15000);
     }
     
     hideNotification() {
@@ -240,6 +329,12 @@ class UpdateManager {
             setTimeout(() => {
                 notification.remove();
             }, 300);
+        }
+        
+        // También ocultar el indicador
+        const indicator = document.getElementById('update-indicator');
+        if (indicator) {
+            indicator.remove();
         }
     }
     

@@ -139,23 +139,21 @@ function migrateToMulticase() {
  * Actualiza las estadísticas de un caso específico
  */
 function updateCaseStats(caseObj) {
-    if (!caseObj || !caseObj.scenarios) return;
-
-    const scenarios = caseObj.scenarios;
-
-    caseObj.stats = {
-        totalScenarios: scenarios.length,
-        totalHours: scenarios.reduce((sum, s) => sum + (parseFloat(s.testTime) || 0), 0),
-        totalOK: scenarios.filter(s => s.status === 'OK').length,
-        totalNO: scenarios.filter(s => s.status === 'NO').length,
-        totalPending: scenarios.filter(s => !s.status || s.status === '' || s.status === 'Pendiente').length,
-        cycles: [...new Set(scenarios.map(s => s.cycleNumber).filter(c => c))]
-    };
-
-    // Calcular tasa de éxito
-    caseObj.stats.successRate = caseObj.stats.totalScenarios > 0 ?
-        Math.round((caseObj.stats.totalOK / caseObj.stats.totalScenarios) * 100) : 0;
-
+    if (!caseObj) return;
+    const s = (window.Stats && typeof window.Stats.calcCaseStats === 'function') ? window.Stats.calcCaseStats(caseObj) : null;
+    if (s) caseObj.stats = s; else {
+        // Fallback mínimo si Stats no está aún cargado
+        const scenarios = Array.isArray(caseObj.scenarios) ? caseObj.scenarios : [];
+        caseObj.stats = {
+            totalScenarios: scenarios.length,
+            totalHours: scenarios.reduce((sum, sc) => sum + (parseFloat(sc.testTime) || 0), 0),
+            totalOK: scenarios.filter(sc => sc.status === 'OK').length,
+            totalNO: scenarios.filter(sc => sc.status === 'NO').length,
+            totalPending: scenarios.filter(sc => !sc.status || sc.status === '' || sc.status === 'Pendiente').length,
+            successRate: scenarios.length > 0 ? Math.round((scenarios.filter(sc => sc.status === 'OK').length / scenarios.length) * 100) : 0,
+            cycles: [...new Set(scenarios.map(sc => sc.cycleNumber).filter(Boolean))]
+        };
+    }
     caseObj.updatedAt = new Date().toISOString();
 }
 
@@ -163,45 +161,13 @@ function updateCaseStats(caseObj) {
  * Actualiza las estadísticas del requerimiento completo
  */
 function updateMulticaseRequirementStats(requirement) {
-    if (!requirement || !requirement.cases) {
-        return;
-    }
-
-    // Sincronizar window.currentRequirement
-    if (typeof window !== 'undefined') {
-        window.currentRequirement = requirement;
-    }
-
-    // Actualizar stats de cada caso primero
+    if (!requirement || !requirement.cases) return;
+    if (typeof window !== 'undefined') window.currentRequirement = requirement;
     requirement.cases.forEach(updateCaseStats);
-
-    // Calcular stats consolidadas
-    const allScenarios = requirement.cases.flatMap(c => c.scenarios || []);
-    const allCycles = [...new Set(allScenarios.map(s => s.cycleNumber).filter(c => c))];
-
-
-    requirement.stats = {
-        totalCases: requirement.cases.length,
-        totalScenarios: allScenarios.length,
-        totalHours: requirement.cases.reduce((sum, c) => sum + (c.stats.totalHours || 0), 0),
-        totalOK: requirement.cases.reduce((sum, c) => sum + (c.stats.totalOK || 0), 0),
-        totalNO: requirement.cases.reduce((sum, c) => sum + (c.stats.totalNO || 0), 0),
-        totalPending: requirement.cases.reduce((sum, c) => sum + (c.stats.totalPending || 0), 0),
-        activeCycles: allCycles.sort((a, b) => parseInt(a) - parseInt(b))
-    };
-
-    // Calcular tasa de éxito general
-    requirement.stats.successRate = requirement.stats.totalScenarios > 0 ?
-        Math.round((requirement.stats.totalOK / requirement.stats.totalScenarios) * 100) : 0;
-
+    const rs = (window.Stats && typeof window.Stats.getRequirementStatsMemo === 'function') ? window.Stats.getRequirementStatsMemo(requirement) : null;
+    requirement.stats = rs || (window.Stats && window.Stats.calcRequirementStats ? window.Stats.calcRequirementStats(requirement) : requirement.stats || {});
     requirement.updatedAt = new Date().toISOString();
-    
-    // Actualizar header después de calcular estadísticas
-    setTimeout(() => {
-        if (typeof createRequirementHeader === 'function') {
-            createRequirementHeader();
-        }
-    }, 50);
+    setTimeout(() => { if (typeof createRequirementHeader === 'function') { createRequirementHeader(); } }, 50);
 }
 
 // ===============================================
@@ -711,6 +677,7 @@ function enableMulticaseMode() {
             testCases = [...currentCase.scenarios];
             inputVariableNames = [...currentCase.inputVariableNames];
             filteredCases = [...testCases];
+            try { window.testCases = [...testCases]; } catch(_) {}
         }
     }
 

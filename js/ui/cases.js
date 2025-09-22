@@ -1163,6 +1163,10 @@ window.applyFilters = function () {
     }
 }
 
+// Referencia fuerte para evitar pérdida de función tras navegación
+window.__filtersReady = true;
+window.__applyFiltersRef = window.applyFilters;
+
 window.updateFilters = function () {
     // Evitar loops infinitos
     if (window.updatingFilters) return;
@@ -1181,7 +1185,7 @@ window.updateFilters = function () {
         const testers = [...new Set(testCases.map(tc => (tc.tester || '').trim()).filter(t => t !== ''))].sort((a,b)=>a.localeCompare(b));
         const prev = currentTester.trim();
         testerFilterEl.innerHTML = '<option value="">Todos</option>' + testers.map(t => `<option value="${t}">${t}</option>`).join('');
-        if (prev && testers.includes(prev)) testerFilterEl.value = prev;
+        if (prev && testers.includes(prev)) testerFilterEl.value = prev; else testerFilterEl.value = '';
     }
 
     // Mantener filteredCases estable: aplicar filtros actuales si existen
@@ -1193,6 +1197,63 @@ window.updateFilters = function () {
 
     // console.log('✅ Filtros actualizados - Testers disponibles:', testers.length);
 }
+
+// Asegura que los filtros existan en el DOM y aplica/actualiza cuando estén listos
+window.ensureFiltersReady = function(maxTries = 10, delayMs = 150) {
+    console.log('🔍 ensureFiltersReady: iniciando...');
+    let tries = 0;
+    const tick = () => {
+        tries++;
+        const hasDom = document.getElementById('testerFilter') && document.getElementById('statusFilter') && document.getElementById('searchInput');
+        const hasData = Array.isArray(window.testCases || testCases) && (window.testCases || testCases).length >= 0; // puede ser 0
+        console.log(`🔍 ensureFiltersReady: intento ${tries}/${maxTries}`, {
+            hasDom,
+            hasData,
+            testCasesLen: (window.testCases || testCases || []).length,
+            testerEl: !!document.getElementById('testerFilter'),
+            statusEl: !!document.getElementById('statusFilter'),
+            searchEl: !!document.getElementById('searchInput')
+        });
+        if (hasDom && hasData) {
+            try {
+                if (typeof window.updateFilters === 'function') window.updateFilters();
+                if (typeof window.applyFilters === 'function') window.applyFilters();
+                // Guardar refs fuertes por si navegamos
+                window.__filtersReady = true;
+                window.__applyFiltersRef = window.applyFilters;
+                console.log('✅ ensureFiltersReady: filtros aplicados', {
+                    testCasesLen: (window.testCases || testCases || []).length,
+                    testerEl: !!document.getElementById('testerFilter'),
+                    statusEl: !!document.getElementById('statusFilter'),
+                    searchEl: !!document.getElementById('searchInput')
+                });
+                return;
+            } catch (e) {
+                console.warn('⚠️ ensureFiltersReady fallo temporal:', e);
+            }
+        }
+        if (tries < maxTries) {
+            setTimeout(tick, delayMs);
+        } else {
+            console.warn('⚠️ ensureFiltersReady: no se pudieron inicializar los filtros a tiempo', {
+                hasDom: !!(document.getElementById('testerFilter') && document.getElementById('statusFilter') && document.getElementById('searchInput')),
+                testCasesLen: (window.testCases || testCases || []).length
+            });
+        }
+    };
+    setTimeout(tick, 0);
+};
+
+// Señalizar readiness y ejecutar callbacks encolados si los hay
+try {
+    window.__filtersReady = true;
+    window.__applyFiltersRef = window.applyFilters;
+    window.__onFiltersReadyCallbacks = window.__onFiltersReadyCallbacks || [];
+    if (Array.isArray(window.__onFiltersReadyCallbacks) && window.__onFiltersReadyCallbacks.length) {
+        const cbs = window.__onFiltersReadyCallbacks.splice(0, window.__onFiltersReadyCallbacks.length);
+        cbs.forEach(cb => { try { typeof cb === 'function' && cb(); } catch(_) {} });
+    }
+} catch(_) {}
 
 // ===============================================
 // FUNCIONES DE TIEMPO
@@ -1591,10 +1652,7 @@ window.deleteTestCase = deleteTestCase;
 window.duplicateTestCase = duplicateTestCase;
 window.viewEvidence = viewEvidence;
 window.renderTestCases = renderTestCases;
-window.applyFilters = applyFilters;
-window.updateFilters = updateFilters;
-window.updateAppStats = updateAppStats;
-window.updateStatusAndDate = updateStatusAndDate;
+// Las funciones ya están expuestas en window en sus definiciones.
 window.handleEvidenceUpload = handleEvidenceUpload;
 window.addEvidenceToContainer = addEvidenceToContainer;
 window.zoomEvidenceImage = zoomEvidenceImage;
