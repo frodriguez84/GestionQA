@@ -528,9 +528,55 @@ function saveRequirements() {
         
         // Usar localStorage directamente - más simple y confiable
         localStorage.setItem('dashboardData', JSON.stringify(dashboardData));
-        console.log('✅ Requerimientos guardados en localStorage');
+        // console.log('✅ Requerimientos guardados en localStorage');
     } catch (error) {
         console.error('❌ Error guardando requerimientos:', error);
+    }
+}
+
+/**
+ * Sincroniza cambios del dashboard con la app
+ */
+function syncFromDashboardToApp(requirementId) {
+    try {
+        console.log('🔄 Sincronizando requerimiento con la app:', requirementId);
+        
+        // Obtener el requerimiento actualizado
+        const requirement = getRequirement(requirementId);
+        if (!requirement) {
+            console.error('❌ No se encontró el requerimiento para sincronizar:', requirementId);
+            return;
+        }
+        
+        // Actualizar currentRequirement si es el requerimiento activo
+        const currentReqId = localStorage.getItem('currentRequirement');
+        if (currentReqId) {
+            try {
+                const currentReq = JSON.parse(currentReqId);
+                if (currentReq && currentReq.id === requirementId) {
+                    // Actualizar la información del requerimiento actual
+                    currentReq.info = {
+                        number: requirement.number,
+                        name: requirement.name,
+                        description: requirement.description,
+                        tester: requirement.tester,
+                        startDate: requirement.startDate || requirement.createdAt
+                    };
+                    currentReq.updatedAt = new Date().toISOString();
+                    
+                    // Guardar requerimiento actualizado
+                    localStorage.setItem('currentRequirement', JSON.stringify(currentReq));
+                    console.log('✅ currentRequirement actualizado en localStorage');
+                }
+            } catch (e) {
+                console.error('❌ Error actualizando currentRequirement:', e);
+            }
+        }
+        
+        console.log('✅ Sincronización con la app completada');
+        
+    } catch (error) {
+        console.error('❌ Error sincronizando con la app:', error);
     }
 }
 
@@ -545,7 +591,7 @@ function loadRequirements() {
             try {
                 const data = JSON.parse(saved);
                 requirementsList = data.requirements || [];
-                console.log('✅ Requerimientos cargados desde localStorage');
+                // console.log('✅ Requerimientos cargados desde localStorage');
             } catch (e) {
                 createSampleRequirements();
             }
@@ -692,3 +738,4 @@ window.updateRequirementStats = updateRequirementStats;
 window.updateAllRequirementsStats = updateAllRequirementsStats;
 window.calculateRealStatsFromCases = calculateRealStatsFromCases;
 window.syncFromAppToDashboard = syncFromAppToDashboard;
+window.syncFromDashboardToApp = syncFromDashboardToApp;

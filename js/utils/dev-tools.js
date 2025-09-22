@@ -10,7 +10,7 @@
 // Función para mostrar/ocultar botones de desarrollo
 function toggleDevButtons() {
     const isDev = window.isDevelopment;
-    console.log('🔧 Configurando botones de desarrollo. Entorno:', isDev ? 'DESARROLLO' : 'PRODUCCIÓN');
+    // console.log('🔧 Configurando botones de desarrollo. Entorno:', isDev ? 'DESARROLLO' : 'PRODUCCIÓN');
     
     // Botones a controlar
     const devButtons = [
@@ -23,7 +23,7 @@ function toggleDevButtons() {
         if (button) {
             if (isDev) {
                 button.style.display = 'inline-block';
-                console.log('✅ Botón mostrado:', buttonId);
+                // console.log('✅ Botón mostrado:', buttonId);
             } else {
                 button.style.display = 'none';
                 console.log('🚫 Botón ocultado:', buttonId);
@@ -116,7 +116,7 @@ function checkUpdatesFallbackImproved() {
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🔧 Inicializando herramientas de desarrollo...');
+    // console.log('🔧 Inicializando herramientas de desarrollo...');
     
     // Mostrar/ocultar botones según el entorno
     toggleDevButtons();
@@ -125,7 +125,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.forceUpdateApp = forceUpdateAppImproved;
     window.checkUpdatesFallback = checkUpdatesFallbackImproved;
     
-    console.log('✅ Herramientas de desarrollo inicializadas');
+    // console.log('✅ Herramientas de desarrollo inicializadas');
 });
 
 // Exportar funciones para uso global

@@ -350,6 +350,24 @@ function handleEditRequirementSubmit(e) {
     const updatedRequirement = updateRequirement(requirementId, formData);
     console.log('✅ Requerimiento actualizado:', updatedRequirement);
     
+    // 🆕 SINCRONIZAR CON LA APP INMEDIATAMENTE
+    if (typeof syncFromDashboardToApp === 'function') {
+        console.log('🔄 Sincronizando cambios con la app...');
+        syncFromDashboardToApp(requirementId);
+    }
+    
+    // 🆕 ACTUALIZAR UI DEL DASHBOARD INMEDIATAMENTE
+    if (typeof updateDashboard === 'function') {
+        console.log('🔄 Actualizando interfaz del dashboard...');
+        updateDashboard();
+    }
+    
+    // 🆕 ACTUALIZAR ESTADÍSTICAS DEL DASHBOARD
+    if (typeof updateAllRequirementsStats === 'function') {
+        console.log('🔄 Actualizando estadísticas del dashboard...');
+        updateAllRequirementsStats();
+    }
+    
     // Cerrar modal
     closeEditRequirementModal();
     
@@ -961,7 +979,7 @@ function setupStatsAutoUpdate() {
     // Actualizar estadísticas cuando la página se vuelve visible (INMEDIATO)
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
-            console.log('🔄 Página visible - actualizando estadísticas INMEDIATAMENTE...');
+            // console.log('🔄 Página visible - actualizando estadísticas INMEDIATAMENTE...');
             
             // Sincronizar desde la app
             if (typeof syncFromAppToDashboard === 'function') {
@@ -978,7 +996,7 @@ function setupStatsAutoUpdate() {
     
     // Actualizar estadísticas al hacer focus en la ventana
     window.addEventListener('focus', () => {
-        console.log('🔄 Ventana con focus - actualizando estadísticas...');
+        // console.log('🔄 Ventana con focus - actualizando estadísticas...');
         
         // Sincronizar desde la app
         if (typeof syncFromAppToDashboard === 'function') {

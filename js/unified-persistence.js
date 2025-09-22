@@ -177,6 +177,7 @@ window.GestorCP.Storage = {
             }
         };
         
+        console.log('🚨 DEBUG unified-persistence.js - CREANDO CASO VACÍO');
         window.currentRequirement.cases.push(initialCase);
         window.currentCaseId = initialCase.id;
         window.multicaseMode = true;

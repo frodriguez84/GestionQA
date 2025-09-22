@@ -89,13 +89,24 @@ async function syncDashboardToApp(requirementId) {
                 tester: requirement.tester,
                 startDate: requirement.startDate || requirement.createdAt
             },
-            // CRÍTICO: Si no hay casos o hay casos vacíos, crear UN SOLO caso vacío
-            cases: (requirement.cases && requirement.cases.length > 0 && requirement.cases.some(c => c.scenarios && c.scenarios.length > 0)) 
-                ? requirement.cases 
-                : [createEmptyCase()],
+            // CRÍTICO: Usar los casos del dashboard tal como están
+            cases: requirement.cases || [],
             createdAt: requirement.createdAt,
             updatedAt: requirement.updatedAt
         };
+        
+        // SOLO crear un caso vacío si NO hay casos en absoluto
+        console.log('🔍 DEBUG syncDashboardToApp - Casos existentes:', multicaseRequirement.cases.length);
+        if (multicaseRequirement.cases.length === 0) {
+            console.log('🚨 DEBUG syncDashboardToApp - CREANDO CASO VACÍO porque no hay casos');
+            if (typeof window.createEmptyCase === 'function') {
+                multicaseRequirement.cases.push(window.createEmptyCase());
+            } else {
+                console.error('❌ window.createEmptyCase no está disponible');
+            }
+        } else {
+            console.log('✅ DEBUG syncDashboardToApp - NO creando caso vacío, ya hay casos');
+        }
         
         // DEBUG CRÍTICO: Verificar casos antes de establecer
         /* console.log('🔍 DEBUG syncDashboardToApp - Casos del dashboard:', requirement.cases?.length || 0);
@@ -237,6 +248,12 @@ async function syncDashboardToApp(requirementId) {
             // Forzar actualización del header
             if (typeof createRequirementHeader === 'function') {
                 createRequirementHeader();
+            }
+            
+            // 🚨 CRÍTICO: Reconfigurar event listeners después de sincronizar requerimiento
+            console.log('🔄 Reconfigurando event listeners después de sincronizar requerimiento...');
+            if (typeof setupLateEventListeners === 'function') {
+                setupLateEventListeners();
             }
         }, 100);
         
@@ -522,30 +539,8 @@ function calculateRealStats(requirement) {
     return stats;
 }
 
-// Función para crear un caso vacío
-function createEmptyCase() {
-    return {
-        id: `case_${Date.now()}`,
-        caseNumber: "1",
-        title: "Caso 1",
-        objective: "Casos de prueba principales",
-        prerequisites: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        status: 'active',
-        scenarios: [],
-        inputVariableNames: ['Variable 1', 'Variable 2'],
-        stats: {
-            totalScenarios: 0,
-            totalHours: 0,
-            totalOK: 0,
-            totalNO: 0,
-            totalPending: 0,
-            successRate: 0,
-            cycles: []
-        }
-    };
-}
+// Función para crear un caso vacío - ELIMINADA PARA EVITAR RECURSIÓN
+// Usar directamente window.createEmptyCase desde core.js
 
 // ===============================================
 // FUNCIONES DE GESTIÓN DE DATOS

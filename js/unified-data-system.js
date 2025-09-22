@@ -267,8 +267,11 @@ window.GestorCP.Data = {
             };
         }
         
+        // 🚨 CRÍTICO: DESHABILITADO - No crear casos vacíos automáticamente
+        // console.log('⚠️ unified-data-system.js - Creación automática de casos DESHABILITADA');
+        
         // Si no hay caso actual, crear uno
-        if (!window.currentCaseId || !window.currentRequirement.cases.find(c => c.id === window.currentCaseId)) {
+        /* if (!window.currentCaseId || !window.currentRequirement.cases.find(c => c.id === window.currentCaseId)) {
             const initialCase = {
                 id: `case_${Date.now()}`,
                 title: 'Caso Principal',
@@ -285,9 +288,10 @@ window.GestorCP.Data = {
                 }
             };
             
+            console.log('🚨 DEBUG unified-data-system.js - CREANDO CASO VACÍO');
             window.currentRequirement.cases.push(initialCase);
             window.currentCaseId = initialCase.id;
-        }
+        } */
         
         // Sistema unificado inicializado
         return true;

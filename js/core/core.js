@@ -234,13 +234,20 @@ function loadRequirementData(requirement) {
                 tester: requirement.tester,
                 startDate: requirement.startDate || requirement.createdAt
             },
-            // CRÍTICO: Si no hay casos o hay casos vacíos, crear UN SOLO caso vacío
-            cases: (requirement.cases && requirement.cases.length > 0 && requirement.cases.some(c => c.scenarios && c.scenarios.length > 0)) 
-                ? requirement.cases 
-                : [createEmptyCase()],
+            // CRÍTICO: Usar los casos del dashboard tal como están
+            cases: requirement.cases || [],
             createdAt: requirement.createdAt,
             updatedAt: requirement.updatedAt
         };
+        
+        // SOLO crear un caso vacío si NO hay casos en absoluto
+        console.log('🔍 DEBUG loadRequirementData - Casos existentes:', multicaseRequirement.cases.length);
+        if (multicaseRequirement.cases.length === 0) {
+            console.log('🚨 DEBUG loadRequirementData - CREANDO CASO VACÍO porque no hay casos');
+            multicaseRequirement.cases.push(createEmptyCase());
+        } else {
+            console.log('✅ DEBUG loadRequirementData - NO creando caso vacío, ya hay casos');
+        }
         
         // Establecer como requerimiento activo
         window.currentRequirement = multicaseRequirement;
@@ -276,6 +283,10 @@ function loadRequirementData(requirement) {
             if (typeof createRequirementHeader === 'function') {
                 createRequirementHeader();
             }
+            
+            // 🚨 CRÍTICO: Reconfigurar event listeners después de cargar requerimiento
+            console.log('🔄 Reconfigurando event listeners después de cargar requerimiento...');
+            setupLateEventListeners();
         }, 100);
         
         console.log(`✅ Requerimiento "${requirement.name}" cargado desde dashboard`);
@@ -295,15 +306,7 @@ function loadRequirementData(requirement) {
  * Configura la navegación del dashboard
  */
 function setupDashboardNavigation() {
-    const backBtn = document.getElementById('btnBackToDashboard');
-    if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            // Sincronizar datos antes de regresar
-            syncWithDashboard();
-            // Redirigir al dashboard
-            window.location.href = 'dashboard.html';
-        });
-    }
+    // console.log('ℹ️ setupDashboardNavigation() - Los botones se configuran en setupLateEventListeners()');
     
     // Botón de editar requerimiento removido - ahora se maneja desde el header
 }
@@ -371,6 +374,42 @@ function initializeApp() {
     if (activeRequirementId) {
         // console.log('📥 Cargando requerimiento desde dashboard...');
         
+        // 🎯 VERIFICAR SI YA ESTAMOS EN EL REQUERIMIENTO CORRECTO
+        const currentReqId = localStorage.getItem('currentRequirement');
+        let currentReq = null;
+        try {
+            currentReq = currentReqId ? JSON.parse(currentReqId) : null;
+        } catch (e) {
+            currentReq = null;
+        }
+        
+        // Si ya estamos en el requerimiento correcto, NO limpiar datos
+        if (currentReq && currentReq.id === activeRequirementId) {
+            // console.log('✅ Ya estamos en el requerimiento correcto, manteniendo datos...');
+            localStorage.removeItem('activeRequirementId');
+            
+            // 🚨 CRÍTICO: Configurar event listeners aunque no se recarguen datos
+            // console.log('🔄 Reconfigurando event listeners después de navegación...');
+            setTimeout(() => {
+                // console.log('🚨 FORZANDO setupLateEventListeners...');
+                setupLateEventListeners();
+            }, 500);
+            
+            // 🚨 DOBLE SEGURIDAD: También configurar después de más tiempo
+            setTimeout(() => {
+                // console.log('🚨 SEGUNDA EJECUCIÓN de setupLateEventListeners...');
+                setupLateEventListeners();
+            }, 2000);
+            
+            // 🚨 TRIPLE SEGURIDAD: Configurar después de que TODO se cargue
+            setTimeout(() => {
+                // console.log('🚨 TERCERA EJECUCIÓN de setupLateEventListeners...');
+                setupLateEventListeners();
+            }, 4000);
+            
+            return;
+        }
+        
         // 🎯 PASO 1: LIMPIAR DATOS LEGACY Y CARGAR DESDE DASHBOARD
         console.log('🧹 Limpiando datos legacy antes de cargar desde dashboard...');
         
@@ -433,6 +472,17 @@ function initializeApp() {
     
     // 🎯 PASO 4: Configurar botón de regreso al dashboard
     setupDashboardNavigation();
+    
+    // 🎯 PASO 4.5: Configurar event listeners TARDÍOS (después de que todos los scripts carguen)
+    setTimeout(() => {
+        setupLateEventListeners();
+    }, 4000);
+    
+    // 🚨 SEGURIDAD EXTRA: Configurar event listeners SIEMPRE al final
+    setTimeout(() => {
+        console.log('🚨 EJECUCIÓN FINAL de setupLateEventListeners...');
+        setupLateEventListeners();
+    }, 5000);
     
     // 🎯 PASO 5: Configurar sincronización automática
     if (typeof setupAutoSync === 'function') {
@@ -522,7 +572,9 @@ function verifySynchronization() {
 
 // Función para crear un caso vacío
 function createEmptyCase() {
-    return {
+    console.log('🚨 createEmptyCase() LLAMADA');
+    
+    const emptyCase = {
         id: `case_${Date.now()}`,
         caseNumber: "1",
         title: "Caso 1",
@@ -543,13 +595,16 @@ function createEmptyCase() {
             cycles: []
         }
     };
+    
+    console.log('🚨 createEmptyCase() RESULTADO:', emptyCase.id);
+    return emptyCase;
 }
 
 // Exponer funciones de sincronización globalmente
 window.loadRequirementFromDashboard = loadRequirementFromDashboard;
+window.createEmptyCase = createEmptyCase;
 window.loadRequirementData = loadRequirementData;
 window.verifySynchronization = verifySynchronization;
-window.createEmptyCase = createEmptyCase;
 
 // 🎯 FUNCIÓN PARA OCULTAR INTERFAZ ORIGINAL
 function hideOriginalInterface() {
@@ -575,6 +630,82 @@ function hideOriginalInterface() {
     });
 
     // console.log('✅ Interfaz original ocultada');
+}
+
+/**
+ * Configura event listeners tardíos (después de que todos los scripts carguen)
+ */
+function setupLateEventListeners() {
+    // console.log('🔄 Configurando event listeners tardíos...');
+    
+    // 🚨 DECISIÓN DRASTICA: Configurar botones de forma más robusta
+    const buttons = [
+        { id: 'btnAddCase', func: 'openAddModal', name: 'Nuevo Escenario' },
+        { id: 'btnBackToDashboard', func: 'goToDashboard', name: 'Dashboard' },
+        { id: 'btnGenerateReport', func: 'openReportPreview', name: 'Reportes' },
+        { id: 'btnClearAll', func: 'clearAllData', name: 'Limpiar Todo' }
+    ];
+    
+    buttons.forEach(button => {
+        const element = document.getElementById(button.id);
+        if (element) {
+            // console.log(`🔍 Configurando ${button.name}`);
+            
+            // 🚨 DRASTICO: Eliminar TODOS los event listeners y reconfigurar
+            const newElement = element.cloneNode(true);
+            element.parentNode.replaceChild(newElement, element);
+            
+            // Agregar nuevo event listener con verificación robusta
+            newElement.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                console.log(`🔄 Click en ${button.name}`);
+                
+                // Verificar si la función existe
+                // console.log(`🔍 Verificando función ${button.func}:`, typeof window[button.func]);
+                // console.log(`🔍 window.${button.func} existe:`, typeof window[button.func] === 'function');
+                
+                if (typeof window[button.func] === 'function') {
+                    try {
+                        // console.log(`🚀 Ejecutando ${button.func}...`);
+                        window[button.func]();
+                        // console.log(`✅ ${button.func} ejecutado correctamente`);
+                    } catch (error) {
+                        console.error(`❌ Error ejecutando ${button.func}:`, error);
+                        if (typeof showError === 'function') {
+                            showError(`Error ejecutando ${button.name}. Recarga la página.`, 'Error');
+                        } else {
+                            alert(`Error ejecutando ${button.name}. Recarga la página.`);
+                        }
+                    }
+                } else {
+                    console.error(`❌ ${button.func} no está disponible`);
+                    console.error(`❌ Funciones disponibles en window:`, Object.keys(window).filter(key => typeof window[key] === 'function').slice(0, 10));
+                    if (typeof showError === 'function') {
+                        showError(`Función ${button.name} no disponible. Recarga la página.`, 'Error');
+                    } else {
+                        alert(`Función ${button.name} no disponible. Recarga la página.`);
+                    }
+                }
+            });
+            
+            // console.log(`✅ ${button.name} configurado correctamente`);
+        } else {
+            console.warn(`⚠️ ${button.id} no encontrado en el DOM`);
+        }
+    });
+    
+    // 🚨 CRÍTICO: También reconfigurar event listeners del modal
+    // console.log('🔄 Reconfigurando event listeners del modal...');
+    if (typeof setupModalEventListeners === 'function') {
+        setupModalEventListeners();
+        // console.log('✅ Event listeners del modal reconfigurados');
+    } else {
+        console.warn('⚠️ setupModalEventListeners no está disponible');
+    }
+    
+    // console.log('✅ Event listeners tardíos configurados correctamente');
 }
 
 function setupEssentialEventListeners() {
@@ -616,18 +747,9 @@ function setupEssentialEventListeners() {
         });
     }
 
-    // Event listeners para botones principales
-    const btnAddCase = document.getElementById('btnAddCase');
-    if (btnAddCase) {
-        btnAddCase.addEventListener('click', () => {
-            if (typeof openAddModal === 'function') openAddModal();
-        });
-    }
-
-    const btnClearAll = document.getElementById('btnClearAll');
-    if (btnClearAll) {
-        btnClearAll.addEventListener('click', clearAllData);
-    }
+    // Event listeners para botones principales - ELIMINADO PARA EVITAR CONFLICTOS
+    // Los event listeners se configuran en setupLateEventListeners()
+    // console.log('ℹ️ Event listeners de botones se configurarán en setupLateEventListeners()');
 
     const btnNewRequirement = document.getElementById('btnNewRequirement');
     if (btnNewRequirement) {

@@ -289,7 +289,7 @@ function getTimeStatistics() {
     
     return {
         casesWithTime: casesWithTime.length,
-        totalCases: testCases.length,
+        totalScenarios: testCases.length, // ✅ CORREGIDO: totalCases → totalScenarios
         totalHours: totalHours,
         averageTimePerCase: casesWithTime.length > 0 ? totalHours / casesWithTime.length : 0
     };

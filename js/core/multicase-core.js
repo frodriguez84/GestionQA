@@ -66,33 +66,18 @@ function hasActiveRequirement() {
 // ===============================================
 
 function createNewCase(title = "Nuevo Caso", objective = "", caseNumber = "") {
-    return {
-        id: `case_${Date.now()}`,
-        caseNumber: caseNumber,
-        title: title,
-        objective: objective,
-        prerequisites: '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        status: 'active',
-
-        // Escenarios del caso (actual testCases)
-        scenarios: [],
-
-        // Variables de entrada específicas del caso
-        inputVariableNames: ['Variable 1', 'Variable 2'],
-
-        // Estadísticas del caso
-        stats: {
-            totalScenarios: 0,
-            totalHours: 0,
-            totalOK: 0,
-            totalNO: 0,
-            totalPending: 0,
-            successRate: 0,
-            cycles: []
-        }
-    };
+    // DELEGAR A LA FUNCIÓN UNIFICADA EN CORE.JS
+    if (typeof window.createEmptyCase === 'function') {
+        const emptyCase = window.createEmptyCase();
+        // Personalizar con los parámetros específicos
+        if (title !== "Nuevo Caso") emptyCase.title = title;
+        if (objective) emptyCase.objective = objective;
+        if (caseNumber) emptyCase.caseNumber = caseNumber;
+        return emptyCase;
+    } else {
+        console.error('❌ window.createEmptyCase no está disponible');
+        return null;
+    }
 }
 
 // ===============================================
@@ -103,6 +88,7 @@ function createNewCase(title = "Nuevo Caso", objective = "", caseNumber = "") {
  * Migra los datos actuales al nuevo formato multicaso
  */
 function migrateToMulticase() {
+    console.log('🚨 DEBUG migrateToMulticase() LLAMADA');
 
     try {
         // Crear nuevo requerimiento
@@ -114,6 +100,7 @@ function migrateToMulticase() {
         }
 
         // Crear "Caso 1" con todos los escenarios actuales
+        console.log('🚨 DEBUG migrateToMulticase() - CREANDO CASO VACÍO');
         const defaultCase = createNewCase("Caso 1", "Casos de prueba principales", "1");
 
         // Migrar escenarios actuales
@@ -512,7 +499,7 @@ function saveMulticaseData() {
         
         const compressedMulticaseData = compressData(multicaseData);
         localStorage.setItem('multicaseData', compressedMulticaseData);
-        console.log('✅ Datos multicaso guardados en localStorage');
+        // console.log('✅ Datos multicaso guardados en localStorage');
 
         /* console.log('✅ Datos multicaso guardados exitosamente');
         console.log('📊 Requerimiento guardado:', currentRequirement.info.name || 'Sin nombre');
@@ -713,11 +700,15 @@ function isMulticaseMode() {
  * Activa el modo multicaso - VERSIÓN MEJORADA
  */
 function enableMulticaseMode() {
+    console.log('🚨 DEBUG enableMulticaseMode() LLAMADA');
     multicaseMode = true;
 
     // Si no hay requerimiento, migrar datos actuales
     if (!currentRequirement) {
+        console.log('🚨 DEBUG enableMulticaseMode() - NO hay currentRequirement, llamando migrateToMulticase()');
         migrateToMulticase();
+    } else {
+        console.log('✅ DEBUG enableMulticaseMode() - YA hay currentRequirement, NO llamando migrateToMulticase()');
     }
 
     // 🎯 ASEGURAR QUE HAY DATOS EN VARIABLES GLOBALES

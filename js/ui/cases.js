@@ -91,36 +91,55 @@ function renderFixedVariablesInputs(values = {}) {
 
 // Funciones principales - Las adjuntamos al objeto window para hacerlas globales
 window.openAddModal = function () {
-    currentEditingId = null;
-    document.getElementById('modalTitle').textContent = 'Nuevo Caso de Prueba';
-    document.getElementById('testCaseForm').reset();
+    try {
+        console.log('🔄 Abriendo modal de agregar caso...');
+        
+        currentEditingId = null;
+        document.getElementById('modalTitle').textContent = 'Nuevo Escenario de Prueba';
+        document.getElementById('testCaseForm').reset();
 
-    document.getElementById('fixedVariablesContainer').innerHTML = '';
-    document.getElementById('evidenceContainer').innerHTML = '';
+        document.getElementById('fixedVariablesContainer').innerHTML = '';
+        document.getElementById('evidenceContainer').innerHTML = '';
 
-    renderFixedVariablesInputs();
+        renderFixedVariablesInputs();
 
-    // Sugerir Ciclo = 1
-    document.getElementById('cycleNumber').value = '1';
+        // Sugerir Ciclo = 1
+        document.getElementById('cycleNumber').value = '1';
 
-    // Sugerir N° Escenario = último + 1
-    let lastScenario = 0;
-    if (testCases.length > 0) {
-        // Buscar el mayor número de escenario existente
-        lastScenario = Math.max(...testCases.map(tc => parseInt(tc.scenarioNumber) || 0));
+        // Sugerir N° Escenario = último + 1
+        let lastScenario = 0;
+        if (window.testCases && window.testCases.length > 0) {
+            // Buscar el mayor número de escenario existente
+            lastScenario = Math.max(...window.testCases.map(tc => parseInt(tc.scenarioNumber) || 0));
+        }
+        document.getElementById('scenarioNumber').value = (lastScenario + 1).toString();
+
+        // Resetear cronómetro
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        document.getElementById('testCaseModal').style.display = 'block';
+        
+        // 🆕 MARCAR COMO DUPLICACIÓN PENDIENTE - SIMPLIFICADO
+        window.isDuplicating = true;
+        window.duplicatedCaseTemp = null;
+        
+        // 🚨 CRÍTICO: Reconfigurar event listeners del modal después de abrirlo
+        setTimeout(() => {
+            console.log('🔄 Reconfigurando event listeners del modal...');
+            if (typeof setupModalEventListeners === 'function') {
+                setupModalEventListeners();
+            }
+        }, 100);
+        
+        console.log('✅ Modal de agregar caso abierto correctamente');
+        
+    } catch (error) {
+        console.error('❌ Error abriendo modal de agregar caso:', error);
+        showError('Error abriendo el modal. Intenta recargar la página.', 'Error');
     }
-    document.getElementById('scenarioNumber').value = (lastScenario + 1).toString();
-
-    // Resetear cronómetro
-    if (timerInterval) {
-        clearInterval(timerInterval);
-        timerInterval = null;
-    }
-
-    document.getElementById('testCaseModal').style.display = 'block';
-    // 🆕 MARCAR COMO DUPLICACIÓN PENDIENTE
-    window.isDuplicating = true;
-    window.duplicatedCaseTemp = duplicatedCase;
 }
 
 window.openEditModal = function (id) {
@@ -140,7 +159,7 @@ window.openEditModal = function (id) {
     currentEditingId = id;
     window.isDuplicating = false; // 🎯 NO es duplicación
 
-    document.getElementById('modalTitle').textContent = 'Editar Caso de Prueba';
+    document.getElementById('modalTitle').textContent = 'Editar Escenario de Prueba';
 
     // Llenar formulario
     document.getElementById('scenarioNumber').value = testCase.scenarioNumber || '';
@@ -1159,16 +1178,44 @@ window.updateAppStats = function () {
     const noCases = testCases.filter(tc => tc.status === 'NO').length;
     const successRate = total > 0 ? Math.round((okCases / total) * 100) : 0;
 
+    // 🐛 CALCULAR ESTADÍSTICAS DE BUGS POR CASO
+    // Bugs Reportados = Número ÚNICO de escenarios con bugs (sin duplicar por ciclos)
+    const uniqueBugScenarios = new Set();
+    testCases.forEach(tc => {
+        if (tc.hasBug && (tc.bugState === 'bug_reported' || tc.bugState === 'bug_returned' || tc.bugState === 'bug_fixed')) {
+            uniqueBugScenarios.add(tc.scenarioNumber);
+        }
+    });
+    const bugsReported = uniqueBugScenarios.size;
+    
+    // Bugs Arreglados = Número ÚNICO de escenarios con bugs arreglados
+    const uniqueFixedScenarios = new Set();
+    testCases.forEach(tc => {
+        if (tc.bugState === 'bug_fixed') {
+            uniqueFixedScenarios.add(tc.scenarioNumber);
+        }
+    });
+    const bugsFixed = uniqueFixedScenarios.size;
+    
+    // Bugs Pendientes = Bugs Reportados - Bugs Arreglados
+    const bugsPending = bugsReported - bugsFixed;
+
     // Actualizar elementos del DOM
     const totalCasesEl = document.getElementById('totalCases');
     const okCasesEl = document.getElementById('okCases');
     const noCasesEl = document.getElementById('noCases');
     const successRateEl = document.getElementById('successRate');
+    const bugsReportedEl = document.getElementById('bugsReported');
+    const bugsFixedEl = document.getElementById('bugsFixed');
+    const bugsPendingEl = document.getElementById('bugsPending');
 
     if (totalCasesEl) totalCasesEl.textContent = total;
     if (okCasesEl) okCasesEl.textContent = okCases;
     if (noCasesEl) noCasesEl.textContent = noCases;
     if (successRateEl) successRateEl.textContent = successRate + '%';
+    if (bugsReportedEl) bugsReportedEl.textContent = bugsReported;
+    if (bugsFixedEl) bugsFixedEl.textContent = bugsFixed;
+    if (bugsPendingEl) bugsPendingEl.textContent = bugsPending;
 
     // 🆕 AGREGAR SOLO UNA STAT DE TIEMPO TOTAL
     addTotalTimeStatsCard();
@@ -1201,9 +1248,9 @@ function addTotalTimeStatsCard() {
             <div class="stat-label">Tiempo Total</div>
         `;
         timeCard.style.background = 'linear-gradient(135deg, #667eea, #764ba2)';
-        timeCard.title = `${timeStats.totalHours.toFixed(2)} horas en ${timeStats.casesWithTime} casos\nPromedio: ${timeStats.averageTimePerCase.toFixed(2)}h por caso\nClick para ver detalles`;
+        timeCard.title = `⏱️  Total: ${timeStats.totalHours.toFixed(2)}h\n📋  Casos: ${timeStats.casesWithTime}\n📈  Promedio: ${timeStats.averageTimePerCase.toFixed(2)}h\n\n💡 Click para ver detalles`;
         timeCard.style.cursor = 'pointer';
-        timeCard.onclick = () => showTimeInfo();
+        timeCard.onclick = () => showTimeInfo(timeStats);
 
         // Agregar ícono
         timeCard.style.position = 'relative';
@@ -1433,6 +1480,37 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // ===============================================
+// FUNCIONES DE INFORMACIÓN DE TIEMPO
+// ===============================================
+
+/**
+ * Muestra información detallada del tiempo
+ */
+function showTimeInfo(timeStats) {
+    if (!timeStats) {
+        console.error('❌ No hay estadísticas de tiempo para mostrar');
+        return;
+    }
+    
+    const message = `
+📊 ESTADÍSTICAS DE TIEMPO
+
+⏱️  Total de horas:        ${timeStats.totalHours.toFixed(2)}hs /n
+📋  Casos con tiempo:      ${timeStats.casesWithTime} /n
+📈  Promedio por escenario: ${timeStats.averageTimePerCase.toFixed(2)}hs /n
+📊  Total de escenarios:   ${timeStats.totalScenarios} /n
+
+💡 Esta información se calcula basándose en los escenarios que tienen tiempo registrado.
+    `;
+    
+    if (typeof showInfo === 'function') {
+        showInfo(message, '📊 Información de Tiempo');
+    } else {
+        alert(message);
+    }
+}
+
+// ===============================================
 // FUNCIONES GLOBALES ADICIONALES - EXPOSICIÓN CRÍTICA
 // ===============================================
 
@@ -1519,7 +1597,7 @@ window.markBug = function(scenarioId) {
     // Actualizar UI
     renderTestCases();
     
-    // Actualizar botones de marcar bug
+    // Actualizar botones de marcar bug (esto también actualiza las stats)
     if (typeof updateAllMarkBugButtons === 'function') {
         updateAllMarkBugButtons();
     }
@@ -1646,6 +1724,11 @@ window.handleRetestBug = function(scenarioNumber, cycle, newStatus) {
                 }, 100);
             }
             
+            // 🐛 ACTUALIZAR STATS DE BUGS AL INSTANTE
+            if (typeof updateAppStats === 'function') {
+                updateAppStats();
+            }
+            
         } else if (newStatus === 'NO') {
             // Bug no resuelto - cambiar estado anterior a "devuelto" y marcar nuevo como "reportado"
             allCycles.forEach(cycleScenario => {
@@ -1668,6 +1751,11 @@ window.handleRetestBug = function(scenarioNumber, cycle, newStatus) {
                     updateAllMarkBugButtons();
                 }, 100);
             }
+            
+            // 🐛 ACTUALIZAR STATS DE BUGS AL INSTANTE
+            if (typeof updateAppStats === 'function') {
+                updateAppStats();
+            }
         }
     }
 };
@@ -1685,6 +1773,11 @@ window.renumberScenariosAfter = renumberScenariosAfter;
 
 // ✅ FUNCIONES PARA MARCAR BUGS
 window.updateAllMarkBugButtons = function() {
+    // 🐛 ACTUALIZAR STATS DE BUGS AL INSTANTE
+    if (typeof updateAppStats === 'function') {
+        updateAppStats();
+    }
+    
     // Actualizar todos los botones de marcar bug en la tabla
     testCases.forEach(tc => {
         const btn = document.getElementById(`markBugBtn-${tc.id}`);

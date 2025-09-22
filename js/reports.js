@@ -322,6 +322,12 @@ function openReportPreview() {
 function closeReportModal() {
     const modal = document.getElementById('reportPreviewModal');
     if (modal) {
+        // 🚨 CRÍTICO: Remover foco del botón antes de cerrar para evitar warning de accesibilidad
+        const btnCancelReport = document.getElementById('btnCancelReport');
+        if (btnCancelReport && document.activeElement === btnCancelReport) {
+            btnCancelReport.blur();
+        }
+        
         // Múltiples métodos para asegurar el cierre
         modal.style.display = 'none';
         modal.style.visibility = 'hidden';

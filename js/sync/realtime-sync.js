@@ -835,8 +835,8 @@ window.RealtimeSync = {
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(() => {
         // initRealtimeSync(); // DESACTIVADA TEMPORALMENTE PARA MEJORAR RENDIMIENTO
-        console.log('⚠️ Sincronización en tiempo real desactivada temporalmente para mejorar rendimiento');
+        // console.log('⚠️ Sincronización en tiempo real desactivada temporalmente para mejorar rendimiento');
     }, 1000);
 });
 
-console.log('🔄 Realtime Sync cargado - Versión 20250113a');
+// console.log('🔄 Realtime Sync cargado - Versión 20250113a');

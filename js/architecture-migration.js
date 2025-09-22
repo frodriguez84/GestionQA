@@ -166,10 +166,14 @@ function migrateLegacyToUnified() {
         
         // Si no hay caso actual, crear uno
         if (!window.currentCaseId || !window.currentRequirement.cases.find(c => c.id === window.currentCaseId)) {
-            console.log('📁 Creando caso principal...');
+            console.log('🚨 DEBUG architecture-migration.js - CREANDO CASO VACÍO');
+            console.log('🚨 DEBUG architecture-migration.js - currentCaseId:', window.currentCaseId);
+            console.log('🚨 DEBUG architecture-migration.js - cases.length:', window.currentRequirement.cases.length);
             const mainCase = createNewCase("Caso Principal", "Caso migrado desde sistema legacy", "1");
             window.currentRequirement.cases.push(mainCase);
             window.currentCaseId = mainCase.id;
+        } else {
+            console.log('✅ DEBUG architecture-migration.js - NO creando caso, ya existe');
         }
         
         // Obtener caso actual

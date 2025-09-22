@@ -35,6 +35,11 @@ let migrationCompleted = false;
  * 🏗️ Inicializa IndexedDB y migra datos desde localStorage
  */
 async function initIndexedDB() {
+    // 🚨 CRÍTICO: IndexedDB DESHABILITADO temporalmente
+    console.log('⚠️ IndexedDB DESHABILITADO - usando localStorage');
+    isInitialized = false; // CRÍTICO: No marcar como inicializado
+    return Promise.resolve(null);
+    
     return new Promise((resolve, reject) => {
         if (isInitialized && db) {
             console.log('✅ IndexedDB ya inicializado');
@@ -59,12 +64,17 @@ async function initIndexedDB() {
             isInitialized = true;
             // console.log('✅ IndexedDB inicializado correctamente');
             
+            // 🚨 CRÍTICO: Migración DESHABILITADA
+            console.log('⚠️ Migración DESHABILITADA - IndexedDB no disponible');
+            migrationCompleted = true;
+            resolve(db);
+            
             // Migrar datos desde localStorage
-            migrateFromLocalStorage().then(() => {
+            /* migrateFromLocalStorage().then(() => {
                 migrationCompleted = true;
                 console.log('✅ Migración desde localStorage completada');
                 resolve(db);
-            }).catch(reject);
+            }).catch(reject); */
         };
 
         request.onerror = (event) => {
@@ -141,6 +151,10 @@ function createObjectStores(database) {
  * 🔄 Migra datos desde localStorage a IndexedDB
  */
 async function migrateFromLocalStorage() {
+    // 🚨 CRÍTICO: Migración DESHABILITADA
+    console.log('⚠️ Migración DESHABILITADA - IndexedDB no disponible');
+    return true;
+    
         // console.log('🔄 Iniciando migración desde localStorage...');
 
     try {
@@ -170,6 +184,13 @@ async function migrateFromLocalStorage() {
  */
 async function migrateRequirements() {
     try {
+        // 🚨 CRÍTICO: Verificar si ya hay requerimientos en IndexedDB para evitar duplicación
+        const existingRequirements = await getAllData(STORE_NAMES.REQUIREMENTS);
+        if (existingRequirements && existingRequirements.length > 0) {
+            console.log('✅ Requerimientos ya existen en IndexedDB, saltando migración');
+            return;
+        }
+
         const dashboardData = localStorage.getItem('dashboardData');
         if (!dashboardData) return;
 
@@ -193,6 +214,13 @@ async function migrateRequirements() {
  */
 async function migrateCasesAndScenarios() {
     try {
+        // 🚨 CRÍTICO: Verificar si ya hay casos en IndexedDB para evitar duplicación
+        const existingCases = await getAllData(STORE_NAMES.CASES);
+        if (existingCases && existingCases.length > 0) {
+            console.log('✅ Casos ya existen en IndexedDB, saltando migración');
+            return;
+        }
+
         // Verificar si hay datos en el sistema unificado
         const unifiedData = localStorage.getItem('gestorcp_unified_data');
         if (unifiedData) {
@@ -455,15 +483,19 @@ function integrateWithExistingSystem() {
         const originalSaveData = window.saveData;
         window.saveData = async function(key, data) {
             try {
+                // 🚨 CRÍTICO: IndexedDB está deshabilitado, usar localStorage directamente
+                // console.log(`⚠️ IndexedDB deshabilitado - guardando ${key} en localStorage`);
+                return originalSaveData(key, data);
+                
                 // SOLO guardar en IndexedDB para evitar duplicación en localStorage
-                if (isInitialized) {
+                /* if (isInitialized) {
                     await saveToIndexedDB(key, data);
                     console.log(`✅ ${key} guardado en IndexedDB (sin duplicación en localStorage)`);
                     return true; // Indicar éxito sin duplicar en localStorage
                 }
                 
                 // Fallback solo si IndexedDB no está disponible
-                return originalSaveData(key, data);
+                return originalSaveData(key, data); */
             } catch (error) {
                 console.error('❌ Error en saveData integrado:', error);
                 return originalSaveData(key, data);
@@ -637,7 +669,7 @@ window.IndexedDBManager = {
 
 // DESHABILITADO: IndexedDB causaba problemas de sincronización
 // Usando localStorage puro para máxima estabilidad
-console.log('✅ IndexedDB deshabilitado - usando localStorage puro');
+// console.log('✅ IndexedDB deshabilitado - usando localStorage puro');
 integrateWithExistingSystem();
 
-console.log('🔧 IndexedDB Manager cargado - Versión 20250113d');
+// console.log('🔧 IndexedDB Manager cargado - Versión 20250113d');

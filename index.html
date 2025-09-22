@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="es" data-cache-bust="20250112f">
+<html lang="es" data-cache-bust="20250113h">
 
 <head>
     <meta charset="UTF-8">
@@ -7,7 +7,7 @@
     <title>Casos de Prueba</title>
     <link rel="manifest" href="manifest.json">
     <!-- ✅ SOLO UN ARCHIVO CSS UNIFICADO -->
-    <link rel="stylesheet" href="css/finalStyles.css?v=20250111d">
+    <link rel="stylesheet" href="css/finalStyles.css?v=20250113f">
     <style>
         .version-display {
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
@@ -340,6 +340,18 @@
                 <div class="stat-number" id="successRate">0%</div>
                 <div class="stat-label">Tasa de Éxito</div>
             </div>
+            <div class="stat-card">
+                <div class="stat-number" id="bugsReported">0</div>
+                <div class="stat-label">Bugs Reportados</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="bugsFixed">0</div>
+                <div class="stat-label">Bugs Arreglados</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="bugsPending">0</div>
+                <div class="stat-label">Bugs Pendientes</div>
+            </div>
         </div>
 
         <div class="main-content">
@@ -589,7 +601,7 @@
     <script src="js/utils/compression-utils.js?v=20250111b"></script>
     
     <!-- STORAGE SYSTEM (Enterprise-grade storage) -->
-    <script src="js/storage/indexeddb-manager.js?v=20250113d"></script>
+    <script src="js/storage/indexeddb-manager.js?v=20250113e"></script>
     
     <!-- SYNC SYSTEM (Real-time synchronization) -->
     <script src="js/sync/realtime-sync.js?v=20250113a"></script>
@@ -618,24 +630,24 @@
     <!-- OPTIMIZATION FILES REMOVED (not used) -->
     
     <!-- CORE (Core functionality) -->
-    <script src="js/core/core.js?v=20250112d"></script>
-    <script src="js/core/multicase-core.js?v=20250112k"></script>
+    <script src="js/core/core.js?v=20250113a"></script>
+    <script src="js/core/multicase-core.js?v=20250113a"></script>
     <script src="js/core/sync-manager.js?v=20250112a"></script>
     <script src="js/core/timers.js?v=20250111u"></script>
     <!-- <script src="js/core/bugfixing-timers.js?v=20250112b"></script> -->
     
     <!-- ARCHITECTURE MIGRATION (Safe migration system) -->
-    <script src="js/architecture-migration.js?v=20250112e"></script>
-    <script src="js/unified-data-system.js?v=20250112d"></script>
-    <script src="js/unified-persistence.js?v=20250112d"></script>
+    <script src="js/architecture-migration.js?v=20250113b"></script>
+    <script src="js/unified-data-system.js?v=20250113b"></script>
+    <script src="js/unified-persistence.js?v=20250113b"></script>
     <!-- LEGACY CLEANUP FILES REMOVED (no longer needed) -->
     
     <!-- LEGACY (Migration) - REMOVED (no longer needed) -->
     
     <!-- UI (User Interface) -->
-    <script src="js/ui/multicase-ui.js?v=20250112j"></script>
+    <script src="js/ui/multicase-ui.js?v=20250113a"></script>
     <script src="js/ui/ui.js?v=20250112b"></script>
-    <script src="js/ui/cases.js?v=20250113d"></script>
+    <script src="js/ui/cases.js?v=20250113h"></script>
     <script src="js/ui/toast-system.js?v=20250112a"></script>
     
     <!-- FEATURES (Additional features) - MOVED HERE TO LOAD AFTER CASES -->

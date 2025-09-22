@@ -265,17 +265,60 @@ function createRequirementHeader() {
         </div>
         
         <div class="requirement-actions">
-            <button class="btn btn-success btn-small" onclick="openNewCaseModal()">
+            <button class="btn btn-success btn-small" id="btnNewCaseHeader">
                 ➕ Nuevo Caso
             </button>
-            <button class="btn btn-info btn-small" onclick="openRequirementReports()">
+            <button class="btn btn-info btn-small" id="btnReportsHeader">
                 📊 Reportes
             </button>
-            <button class="btn btn-warning btn-small" onclick="goToDashboard()">
+            <button class="btn btn-warning btn-small" id="btnEditRequirementHeader">
                 ✏️ Editar Requerimiento
             </button>
         </div>
     `;
+
+    // 🚨 CRÍTICO: Configurar event listeners para los botones del header
+    setTimeout(() => {
+        const btnNewCase = document.getElementById('btnNewCaseHeader');
+        const btnReports = document.getElementById('btnReportsHeader');
+        const btnEditRequirement = document.getElementById('btnEditRequirementHeader');
+        
+        if (btnNewCase) {
+            btnNewCase.addEventListener('click', () => {
+                console.log('🔄 Click en Nuevo Caso (Header)');
+                if (typeof window.openNewCaseModal === 'function') {
+                    window.openNewCaseModal();
+                } else {
+                    console.error('❌ openNewCaseModal no está disponible');
+                }
+            });
+                        // console.log('✅ Event listener configurado para btnNewCaseHeader');
+        }
+        
+        if (btnReports) {
+            btnReports.addEventListener('click', () => {
+                console.log('🔄 Click en Reportes (Header)');
+                if (typeof window.openRequirementReports === 'function') {
+                    window.openRequirementReports();
+                } else {
+                    console.error('❌ openRequirementReports no está disponible');
+                }
+            });
+                        // console.log('✅ Event listener configurado para btnReportsHeader');
+        }
+        
+        if (btnEditRequirement) {
+            btnEditRequirement.addEventListener('click', () => {
+                console.log('🔄 Click en Editar Requerimiento (Header)');
+                if (typeof window.goToDashboard === 'function') {
+                    window.goToDashboard();
+                } else {
+                    console.error('❌ goToDashboard no está disponible');
+                }
+            });
+                        // console.log('✅ Event listener configurado para btnEditRequirementHeader');
+        }
+    }, 100);
 
 }
 
@@ -924,6 +967,14 @@ function updateMulticaseUI() {
     if (typeof updateStats === 'function') {
         updateStats();
     }
+    
+                // 🚨 CRÍTICO: Reconfigurar event listeners después de actualizar UI
+                setTimeout(() => {
+                    // console.log('🔄 Reconfigurando event listeners después de updateMulticaseUI...');
+                    if (typeof setupLateEventListeners === 'function') {
+                        setupLateEventListeners();
+                    }
+                }, 200);
 }
 
 /**
@@ -1119,7 +1170,7 @@ function loadRequirementFromFile(event) {
             }
             
             // Cargar el nuevo requerimiento
-            loadRequirementData(data);
+            loadRequirementDataFromUI(data);
             
             alert('✅ Requerimiento cargado exitosamente');
             closeSaveLoadModal();
@@ -1136,7 +1187,7 @@ function loadRequirementFromFile(event) {
 /**
  * Carga los datos del requerimiento y sincroniza con el dashboard
  */
-function loadRequirementData(data) {
+function loadRequirementDataFromUI(data) {
     try {
         /* console.log('🔄 Cargando datos del requerimiento:', data.requirement.info.name); */
         

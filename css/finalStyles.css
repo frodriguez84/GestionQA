@@ -1993,7 +1993,7 @@ body.dark-mode .table-container.auto-scroll-down::before {
     padding: var(--spacing-xl);
     border-radius: var(--radius-md);
     width: 90%;
-    max-width: 800px;
+    max-width: 500px; /* ✅ AJUSTADO: 400px → 500px (un poco más ancho) */
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: var(--shadow-lg);
@@ -3714,6 +3714,7 @@ body.dark-mode #editCaseModal .form-group textarea:focus {
     .modal-content {
         margin: 5% auto;
         padding: var(--spacing-lg);
+        max-width: 400px; /* ✅ AJUSTADO: 350px → 400px en móviles */
     }
 
     table {
