@@ -901,56 +901,82 @@ function updateExecutiveSummary(requirements) {
     const totalOK = requirements.reduce((sum, req) => sum + (req.stats.totalOK || 0), 0);
     const successRate = totalScenarios > 0 ? Math.round((totalOK / totalScenarios) * 100) : 0;
     
-    // Actualizar elementos
+    // 🆕 CALCULAR ESTADÍSTICAS DE BUGS
+    const totalBugsReported = requirements.reduce((sum, req) => sum + (req.stats.totalBugs || 0), 0);
+    const totalBugsFixed = requirements.reduce((sum, req) => sum + (req.stats.bugsResolved || 0), 0);
+    const totalBugsPending = totalBugsReported - totalBugsFixed;
+    
+    // Actualizar elementos existentes
     const elements = {
         totalSelected: document.getElementById('totalSelected'),
         totalTime: document.getElementById('totalTime'),
         successRate: document.getElementById('successRate'),
-        totalScenarios: document.getElementById('totalScenarios')
+        totalScenarios: document.getElementById('totalScenarios'),
+        // 🆕 ELEMENTOS DE BUGS
+        totalBugsReported: document.getElementById('totalBugsReported'),
+        totalBugsFixed: document.getElementById('totalBugsFixed'),
+        totalBugsPending: document.getElementById('totalBugsPending')
     };
     
+    // Actualizar elementos existentes
     if (elements.totalSelected) elements.totalSelected.textContent = totalSelected;
     if (elements.totalTime) elements.totalTime.textContent = totalTime.toFixed(1);
     if (elements.successRate) elements.successRate.textContent = successRate + '%';
     if (elements.totalScenarios) elements.totalScenarios.textContent = totalScenarios;
+    
+    // 🆕 ACTUALIZAR ELEMENTOS DE BUGS
+    if (elements.totalBugsReported) elements.totalBugsReported.textContent = totalBugsReported;
+    if (elements.totalBugsFixed) elements.totalBugsFixed.textContent = totalBugsFixed;
+    if (elements.totalBugsPending) elements.totalBugsPending.textContent = totalBugsPending;
 }
 
 /**
- * Actualiza la vista detallada
+ * Actualiza la vista detallada - NUEVO DISEÑO
  */
 function updateDetailedView(requirements) {
     const tableElement = document.getElementById('reportTable');
     if (!tableElement) return;
     
-    // Crear header
+    // 🆕 CREAR HEADER CON NUEVO DISEÑO
     const headerHTML = `
-        <div class="report-row header">
-            <div class="report-cell">Requerimiento</div>
-            <div class="report-cell">Nombre</div>
-            <div class="report-cell">Prioridad</div>
-            <div class="report-cell">Estado</div>
-            <div class="report-cell">Progreso</div>
-            <div class="report-cell">Tiempo</div>
+        <div class="table-header">
+            <div class="table-cell">Requerimiento</div>
+            <div class="table-cell">Nombre</div>
+            <div class="table-cell">Prioridad</div>
+            <div class="table-cell">Estado</div>
+            <div class="table-cell">Progreso</div>
+            <div class="table-cell">Tiempo</div>
+            <div class="table-cell">Bugs Reportados</div>
+            <div class="table-cell">Bugs Arreglados</div>
+            <div class="table-cell">Bugs Pendientes</div>
         </div>
     `;
     
-    // Crear filas de datos
+    // 🆕 CREAR FILAS CON NUEVO DISEÑO
     const rowsHTML = requirements.map(req => {
         // Usar la misma lógica que las tarjetas del dashboard
         const progress = req.stats.totalScenarios > 0 ? 
             Math.round((req.stats.completedScenarios / req.stats.totalScenarios) * 100) : 0;
         
+        // 🆕 CALCULAR BUGS POR REQUERIMIENTO
+        const bugsReported = req.stats.totalBugs || 0;
+        const bugsFixed = req.stats.bugsResolved || 0;
+        const bugsPending = bugsReported - bugsFixed;
+        
         return `
-            <div class="report-row">
-                <div class="report-cell">${escapeHtml(req.number)}</div>
-                <div class="report-cell">${escapeHtml(req.name)}</div>
-                <div class="report-cell priority">
+            <div class="table-row">
+                <div class="table-cell">${escapeHtml(req.number)}</div>
+                <div class="table-cell">${escapeHtml(req.name)}</div>
+                <div class="table-cell priority">
                     <div class="priority-dot priority-${req.priority}"></div>
                     ${req.priority}
                 </div>
-                <div class="report-cell">${getStatusText(req.status)}</div>
-                <div class="report-cell">${progress}%</div>
-                <div class="report-cell">${(req.stats.totalHours || 0).toFixed(1)} hs</div>
+                <div class="table-cell">${getStatusText(req.status)}</div>
+                <div class="table-cell">${progress}%</div>
+                <div class="table-cell">${(req.stats.totalHours || 0).toFixed(1)} hs</div>
+                <div class="table-cell">${bugsReported}</div>
+                <div class="table-cell">${bugsFixed}</div>
+                <div class="table-cell">${bugsPending}</div>
             </div>
         `;
     }).join('');

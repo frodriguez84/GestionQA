@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="es" data-cache-bust="20250112f">
+<html lang="es" data-cache-bust="20250113s">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Gestor de Casos de Prueba</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="stylesheet" href="css/dashboard.css?v=20250113b">
+    <link rel="stylesheet" href="css/dashboard.css?v=20250113s">
 </head>
 
 <body>
@@ -236,9 +236,9 @@
         </div>
     </div>
 
-    <!-- Modal de Reporte Ejecutivo -->
+    <!-- Modal de Reporte Ejecutivo - NUEVO DISEÑO -->
     <div id="reportModal" class="modal">
-        <div class="modal-content report-modal">
+        <div class="modal-content report-modal-new">
             <div class="modal-header">
                 <h2>📊 Reporte Ejecutivo</h2>
                 <button class="modal-close">&times;</button>
@@ -252,34 +252,53 @@
                     </div>
                 </div>
                 
-                <div class="report-content">
-                    <!-- Vista Ejecutiva -->
-                    <div class="executive-summary" id="executiveSummary">
+                <div class="report-content-new">
+                    <!-- 🆕 RESUMEN EJECUTIVO - DISEÑO LIMPIO -->
+                    <div class="executive-summary-new" id="executiveSummary">
                         <h3>🎯 Resumen Ejecutivo</h3>
-                        <div class="summary-cards">
-                            <div class="summary-card">
-                                <div class="summary-number" id="totalSelected">0</div>
-                                <div class="summary-label">Requerimientos</div>
+                        
+                        <!-- Primera fila: Estadísticas principales -->
+                        <div class="summary-row">
+                            <div class="summary-card-new">
+                                <div class="summary-number-new" id="totalSelected">0</div>
+                                <div class="summary-label-new">Requerimientos</div>
                             </div>
-                            <div class="summary-card">
-                                <div class="summary-number" id="totalTime">0</div>
-                                <div class="summary-label">Horas Totales</div>
+                            <div class="summary-card-new">
+                                <div class="summary-number-new" id="totalTime">0</div>
+                                <div class="summary-label-new">Horas Totales</div>
                             </div>
-                            <div class="summary-card">
-                                <div class="summary-number" id="successRate">0%</div>
-                                <div class="summary-label">Tasa de Éxito</div>
+                            <div class="summary-card-new">
+                                <div class="summary-number-new" id="successRate">0%</div>
+                                <div class="summary-label-new">Tasa de Éxito</div>
                             </div>
-                            <div class="summary-card">
-                                <div class="summary-number" id="totalScenarios">0</div>
-                                <div class="summary-label">Escenarios</div>
+                            <div class="summary-card-new">
+                                <div class="summary-number-new" id="totalScenarios">0</div>
+                                <div class="summary-label-new">Escenarios</div>
                             </div>
+                        </div>
+                        
+                        <!-- Segunda fila: Estadísticas de bugs -->
+                        <div class="summary-row">
+                            <div class="summary-card-new">
+                                <div class="summary-number-new" id="totalBugsReported">0</div>
+                                <div class="summary-label-new">Bugs Reportados</div>
+                            </div>
+                            <div class="summary-card-new">
+                                <div class="summary-number-new" id="totalBugsFixed">0</div>
+                                <div class="summary-label-new">Bugs Arreglados</div>
+                            </div>
+                            <div class="summary-card-new">
+                                <div class="summary-number-new" id="totalBugsPending">0</div>
+                                <div class="summary-label-new">Bugs Pendientes</div>
+                            </div>
+                            <div class="summary-card-new placeholder"></div>
                         </div>
                     </div>
                     
-                    <!-- Vista Detallada -->
-                    <div class="detailed-view" id="detailedView">
+                    <!-- 🆕 VISTA DETALLADA - TABLA LIMPIA -->
+                    <div class="detailed-view-new" id="detailedView">
                         <h3>📋 Detalle por Requerimiento</h3>
-                        <div class="report-table" id="reportTable">
+                        <div class="report-table-new" id="reportTable">
                             <!-- Se llenará dinámicamente -->
                         </div>
                     </div>
@@ -311,7 +330,7 @@
     <script src="js/dashboard/dashboard-theme.js?v=20250110a"></script>
     <script src="js/dashboard/dashboard-storage.js?v=20250110a"></script>
     <script src="js/dashboard/dashboard-core.js?v=20250113a"></script>
-    <script src="js/dashboard/dashboard-ui.js?v=20250112d"></script>
+    <script src="js/dashboard/dashboard-ui.js?v=20250113s"></script>
     
     <!-- 🔧 DETECCIÓN DE ENTORNO -->
     <script>
@@ -393,6 +412,7 @@
             display: flex;
             flex-direction: column;
         }
+        
     </style>
 </body>
 

@@ -1118,9 +1118,25 @@ body.dark-mode input:checked + .slider {
 
 .summary-cards {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 1rem;
     margin-bottom: 1.5rem;
+}
+
+/* 🆕 TARJETAS DE BUGS - Ocupar todo el ancho disponible */
+.summary-card.bugs-reported,
+.summary-card.bugs-fixed,
+.summary-card.bugs-pending {
+    grid-column: span 1;
+    min-width: 0;
+    flex: 1;
+}
+
+/* Responsive para pantallas más pequeñas */
+@media (max-width: 768px) {
+    .summary-cards {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 .summary-card {
@@ -1145,11 +1161,184 @@ body.dark-mode input:checked + .slider {
     font-weight: 500;
 }
 
+/* 🆕 ESTILOS ESPECÍFICOS PARA TARJETAS DE BUGS */
+.summary-card.bugs-reported,
+.summary-card.bugs-fixed,
+.summary-card.bugs-pending {
+    /* Sin colores especiales - solo alineación */
+    border: none;
+}
+
 /* Vista detallada */
 .detailed-view h3 {
     margin-bottom: 1rem;
     color: var(--text-primary);
     font-size: 1.3rem;
+}
+
+/* 🆕 NUEVO DISEÑO DEL MODAL DE REPORTE - COMPLETAMENTE LIMPIO */
+
+/* Modal nuevo */
+.report-modal-new {
+    max-width: 1000px;
+    max-height: 90vh;
+}
+
+/* Contenido del reporte nuevo */
+.report-content-new {
+    padding: 1rem 0;
+}
+
+/* 🆕 RESUMEN EJECUTIVO NUEVO */
+.executive-summary-new {
+    margin-bottom: 2rem;
+}
+
+.executive-summary-new h3 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-size: 1.3rem;
+}
+
+/* Filas de tarjetas */
+.summary-row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    justify-content: flex-start;
+    align-items: stretch;
+}
+
+/* Tarjetas nuevas */
+.summary-card-new {
+    flex: 1;
+    background: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: 12px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow);
+    min-height: 100px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.summary-card-new.placeholder {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    flex: 0;
+    min-width: 0;
+    padding: 0;
+}
+
+.summary-number-new {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.summary-label-new {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* 🆕 VISTA DETALLADA NUEVA */
+.detailed-view-new h3 {
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-size: 1.3rem;
+}
+
+/* Tabla nueva */
+.report-table-new {
+    background: var(--bg-secondary);
+    border-radius: 8px;
+    overflow-x: auto;
+    overflow-y: visible;
+    border: 1px solid var(--border-color);
+    min-width: 800px;
+    position: relative;
+}
+
+.report-table-new .table-header {
+    display: grid;
+    grid-template-columns: 120px 200px 80px 100px 80px 80px 140px 140px 140px;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    font-weight: 600;
+    border-bottom: 2px solid var(--border-color);
+    min-width: 1000px;
+}
+
+.report-table-new .table-row {
+    display: grid;
+    grid-template-columns: 120px 200px 80px 100px 80px 80px 140px 140px 140px;
+    gap: 1rem;
+    padding: 1rem;
+    align-items: center;
+    min-width: 1000px;
+    position: relative;
+    box-shadow: 0 1px 0 var(--border-color);
+}
+
+.report-table-new .table-row:last-child {
+    border-bottom: none;
+}
+
+.report-table-new .table-cell {
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Todas las columnas alineadas a la izquierda para consistencia */
+.report-table-new .table-cell:last-child {
+    text-align: left;
+}
+
+/* Responsive para la tabla nueva */
+@media (max-width: 1200px) {
+    .report-table-new .table-header,
+    .report-table-new .table-row {
+        grid-template-columns: 100px 150px 60px 80px 60px 60px 120px 120px 120px;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        min-width: 800px;
+    }
+}
+
+/* Modo oscuro para el nuevo diseño */
+body.dark-mode .summary-card-new {
+    background: var(--dark-surface);
+    border-color: var(--dark-border);
+}
+
+body.dark-mode .summary-number-new {
+    color: var(--dark-accent);
+}
+
+body.dark-mode .summary-label-new {
+    color: var(--dark-text-secondary);
+}
+
+body.dark-mode .report-table-new {
+    background: var(--dark-surface);
+    border-color: var(--dark-border);
+}
+
+body.dark-mode .report-table-new .table-header {
+    background: var(--dark-surface);
+    border-bottom-color: var(--dark-border);
+}
+
+body.dark-mode .report-table-new .table-row {
+    box-shadow: 0 1px 0 var(--dark-border);
 }
 
 .report-table {
@@ -1222,6 +1411,14 @@ body.dark-mode .summary-number {
 
 body.dark-mode .summary-label {
     color: var(--dark-text-secondary);
+}
+
+/* 🆕 MODO OSCURO PARA TARJETAS DE BUGS */
+body.dark-mode .summary-card.bugs-reported,
+body.dark-mode .summary-card.bugs-fixed,
+body.dark-mode .summary-card.bugs-pending {
+    /* Sin colores especiales en modo oscuro */
+    border: none;
 }
 
 body.dark-mode .executive-summary h3,
