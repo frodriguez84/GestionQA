@@ -5,11 +5,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - Gestor de Casos de Prueba</title>
+    <script>
+        // Aplicar tema lo antes posible para evitar parpadeo
+        (function(){
+            try {
+                var t = localStorage.getItem('theme') || 'light';
+                if (t === 'dark') {
+                    document.documentElement.setAttribute('data-theme','dark');
+                }
+            } catch(e) { /* noop */ }
+        })();
+    </script>
     <link rel="manifest" href="manifest.json">
     <link rel="stylesheet" href="css/dashboard.css?v=20250113s">
 </head>
 
 <body>
+    <script>
+        // Asegurar clase en body inmediatamente
+        (function(){
+            try {
+                if (localStorage.getItem('theme') === 'dark') {
+                    document.body.classList.add('dark-mode');
+                }
+            } catch(e) { /* noop */ }
+        })();
+    </script>
     <!-- Header del Dashboard -->
     <header class="dashboard-header">
         <div class="header-content">
@@ -331,6 +352,19 @@
     <script src="js/dashboard/dashboard-storage.js?v=20250110a"></script>
     <script src="js/dashboard/dashboard-core.js?v=20250113a"></script>
     <script src="js/dashboard/dashboard-ui.js?v=20250113s"></script>
+    <script>
+        // Warm-up IndexedDB en dashboard sin bloquear
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(async () => {
+                if (window.IndexedDBManager && window.IndexedDBManager.init) {
+                    try { await Promise.race([
+                        window.IndexedDBManager.init(),
+                        new Promise(res => setTimeout(res, 1200))
+                    ]);} catch(e){ /* noop */ }
+                }
+            }, 200);
+        });
+    </script>
     
     <!-- 🔧 DETECCIÓN DE ENTORNO -->
     <script>

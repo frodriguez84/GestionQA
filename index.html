@@ -5,6 +5,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Casos de Prueba</title>
+    <script>
+        // Aplicar tema lo antes posible para evitar parpadeos
+        (function(){
+            try {
+                var t = localStorage.getItem('theme') || 'light';
+                if (t === 'dark') {
+                    document.documentElement.setAttribute('data-theme','dark');
+                }
+            } catch(e) { /* noop */ }
+        })();
+    </script>
     <link rel="manifest" href="manifest.json">
     <!-- ✅ SOLO UN ARCHIVO CSS UNIFICADO -->
     <link rel="stylesheet" href="css/finalStyles.css?v=20250113f">
@@ -602,6 +613,7 @@
     
     <!-- STORAGE SYSTEM (Enterprise-grade storage) -->
     <script src="js/storage/indexeddb-manager.js?v=20250113e"></script>
+    <script src="js/storage/evidence-storage.js?v=20250113a"></script>
     
     <!-- SYNC SYSTEM (Real-time synchronization) -->
     <script src="js/sync/realtime-sync.js?v=20250113a"></script>
@@ -663,12 +675,27 @@
     <script src="js/dashboard/dashboard-theme.js?v=20250112a"></script>
     
 
-    <!-- Librerías externas -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx-populate/browser/xlsx-populate.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- Librerías externas: CARGA DIFERIDA para no bloquear el arranque -->
+    <script>
+        function loadHeavyLibs() {
+            try {
+                const libs = [
+                    'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+                    'https://cdn.jsdelivr.net/npm/xlsx-populate/browser/xlsx-populate.min.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js',
+                    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'
+                ];
+                libs.forEach(src => {
+                    const s = document.createElement('script');
+                    s.src = src;
+                    s.async = true;
+                    document.head.appendChild(s);
+                });
+                console.log('📦 Librerías pesadas cargándose en segundo plano...');
+            } catch (e) { console.warn('⚠️ No se pudieron cargar libs pesadas en diferido:', e); }
+        }
+    </script>
 
     <script>
         // 🎯 SISTEMA ANTI-FLASH COMPLETO
@@ -752,30 +779,42 @@
             setTimeout(async () => {
                 if (typeof window.IndexedDBManager !== 'undefined' && window.IndexedDBManager.init) {
                     console.log('🏗️ Inicializando IndexedDB...');
-                    await window.IndexedDBManager.init();
-                    updateLoaderProgress(70, 'IndexedDB inicializado...');
+                    const start = performance.now();
+                    try {
+                        await Promise.race([
+                            window.IndexedDBManager.init(),
+                            new Promise(res => setTimeout(res, 1200))
+                        ]);
+                        console.log('✅ IndexedDB listo (o fallback) en', Math.round(performance.now() - start), 'ms');
+                    } catch (e) {
+                        console.warn('⚠️ IndexedDB init fallback:', e);
+                    }
+                    updateLoaderProgress(70, 'Almacenamiento listo...');
                 }
 
                 // Llamar directamente a la inicialización del sistema multicaso
                 if (typeof initializeMulticaseSystem === 'function') {
+                    const t0 = performance.now();
                     initializeMulticaseSystem();
-                    updateLoaderProgress(85, 'Sistema multicaso iniciado...');
+                    const dt = Math.round(performance.now() - t0);
+                    updateLoaderProgress(85, dt > 800 ? 'Cargando datos...' : 'Sistema multicaso iniciado...');
                 }
 
                 // Forzar actualización de UI multicaso después de un breve delay
                 setTimeout(() => {
-                    if (typeof updateMulticaseUI === 'function') {
-                        // console.log('🎨 Ejecutando updateMulticaseUI...');
-                        updateMulticaseUI();
-                        updateLoaderProgress(95, 'Actualizando interfaz...');
-                    }
-                    // ✅ NUEVO: sincronizar la visibilidad de la tab Gestión
-                    if (typeof updateRequirementButtons === 'function') {
-                        updateRequirementButtons();
-                    }
-
-                    // Finalizar loader
-                    setTimeout(finishLoader, 300);
+                    const schedule = window.requestIdleCallback || function(cb){ return setTimeout(() => cb({didTimeout:false,timeRemaining:() => 0}), 0); };
+                    schedule(() => {
+                        if (typeof updateMulticaseUI === 'function') {
+                            const t1 = performance.now();
+                            updateMulticaseUI();
+                            const dtUi = Math.round(performance.now() - t1);
+                            updateLoaderProgress(95, dtUi > 500 ? 'Optimizando interfaz...' : 'Actualizando interfaz...');
+                        }
+                        if (typeof updateRequirementButtons === 'function') {
+                            updateRequirementButtons();
+                        }
+                        setTimeout(() => { finishLoader(); setTimeout(loadHeavyLibs, 200); }, 300);
+                    });
                 }, 200);
             }, 100);
         });

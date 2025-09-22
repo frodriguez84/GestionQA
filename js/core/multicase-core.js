@@ -392,19 +392,12 @@ function switchToCase(caseId) {
     updateMulticaseRequirementStats(currentRequirement);
     saveMulticaseData();
 
-    // 🎯 PASO 6: Actualizar UI después de cambiar caso
+    // 🎯 PASO 6: Actualizar UI después de cambiar caso (rápido y no bloqueante)
     setTimeout(() => {
-        if (typeof updateFilters === 'function') {
-            updateFilters();
-        }
-        if (typeof updateAppStats === 'function') {
-            updateAppStats();
-        }
-        if (typeof renderTestCases === 'function') {
-            renderTestCases();
-        }
-        // console.log('✅ UI actualizada después de cambiar caso');
-    }, 100);
+        try { if (typeof updateFilters === 'function') updateFilters(); } catch(_) {}
+        try { if (typeof updateAppStats === 'function') updateAppStats(); } catch(_) {}
+        try { if (typeof renderTestCases === 'function') renderTestCases(); } catch(_) {}
+    }, 20);
 
     // console.log('✅ Cambiado al caso:', targetCase.title);
     // console.log(`📊 Cargados ${testCases.length} escenarios del caso`);
@@ -485,7 +478,7 @@ function saveMulticaseData() {
         // Crear copia para verificación
         const dataToSave = JSON.stringify(currentRequirement);
 
-        // Usar localStorage directamente - más simple y confiable
+        // Usar SOLO claves unificadas para evitar duplicación
         localStorage.setItem('currentRequirement', dataToSave);
         localStorage.setItem('currentCaseId', currentCaseId);
         localStorage.setItem('multicaseMode', multicaseMode.toString());

@@ -273,7 +273,7 @@ function loadRequirementData(requirement) {
         // Guardar en el sistema multicaso
         saveMulticaseData();
         
-        // Actualizar la interfaz multicaso con delay
+        // Actualizar la interfaz multicaso con delay (y único wiring tardío)
         setTimeout(() => {
             if (typeof updateMulticaseUI === 'function') {
                 updateMulticaseUI();
@@ -284,9 +284,10 @@ function loadRequirementData(requirement) {
                 createRequirementHeader();
             }
             
-            // 🚨 CRÍTICO: Reconfigurar event listeners después de cargar requerimiento
-            console.log('🔄 Reconfigurando event listeners después de cargar requerimiento...');
-            setupLateEventListeners();
+            // Único wiring tardío de listeners
+            setTimeout(() => {
+                setupLateEventListeners();
+            }, 400);
         }, 100);
         
         console.log(`✅ Requerimiento "${requirement.name}" cargado desde dashboard`);
@@ -419,6 +420,10 @@ function initializeApp() {
         localStorage.removeItem('currentCaseId');
         localStorage.removeItem('testCases');
         
+        // Marcar sync en progreso y limpiar ID activo ANTES de iniciar para evitar flujos paralelos
+        try { window.syncFromDashboardInProgress = true; } catch(_) {}
+        localStorage.removeItem('activeRequirementId');
+
         // Siempre cargar desde dashboard para requerimientos nuevos
         if (typeof syncDashboardToApp === 'function') {
             console.log('✅ Cargando requerimiento desde dashboard...');
@@ -428,9 +433,8 @@ function initializeApp() {
             loadRequirementFromDashboard(activeRequirementId);
         }
         
-        // Limpiar el ID activo
-        localStorage.removeItem('activeRequirementId');
-        // console.log('🧹 ID de requerimiento activo limpiado');
+        // Salida temprana: la sincronización ya disparará el render y wiring necesarios
+        return;
     } else {
         // console.log('📂 No hay requerimiento activo, cargando datos existentes...');
         // 🎯 PASO 2: Cargar datos usando sistema multicaso
@@ -455,7 +459,9 @@ function initializeApp() {
     if (activeRequirementId && currentRequirement) {
         // console.log('✅ Requerimiento cargado correctamente desde dashboard');
     } else if (activeRequirementId && !currentRequirement) {
-        console.error('❌ Error: Se intentó cargar requerimiento pero no se estableció');
+        if (!window.syncFromDashboardInProgress) {
+            console.warn('⚠️ Aún no se estableció el requerimiento (esperando sync)');
+        }
     }
 
     // 🎯 PASO 3: Sistema unificado eliminado durante limpieza legacy
@@ -465,24 +471,11 @@ function initializeApp() {
     // 🎯 PASO 3: Configurar event listeners esenciales SOLO para multicaso
     setupEssentialEventListeners();
     
-    // 🎯 PASO 3.1: Reintento tardío para event listeners (por si el DOM no estaba listo)
-    setTimeout(() => {
-        setupEssentialEventListeners();
-    }, 1000);
-    
     // 🎯 PASO 4: Configurar botón de regreso al dashboard
     setupDashboardNavigation();
     
-    // 🎯 PASO 4.5: Configurar event listeners TARDÍOS (después de que todos los scripts carguen)
-    setTimeout(() => {
-        setupLateEventListeners();
-    }, 4000);
-    
-    // 🚨 SEGURIDAD EXTRA: Configurar event listeners SIEMPRE al final
-    setTimeout(() => {
-        console.log('🚨 EJECUCIÓN FINAL de setupLateEventListeners...');
-        setupLateEventListeners();
-    }, 5000);
+    // 🎯 PASO 4.5: Única reconfiguración tardía de listeners
+    setTimeout(() => { setupLateEventListeners(); }, 800);
     
     // 🎯 PASO 5: Configurar sincronización automática
     if (typeof setupAutoSync === 'function') {

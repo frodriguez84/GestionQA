@@ -50,9 +50,9 @@ class VersionManager {
         if (versionDisplay) {
             versionDisplay.innerHTML = `
                 <div class="version-info">
-                    <strong>📱 Versión:</strong> ${this.currentVersion}<br>
-                    <strong>🔨 Build:</strong> ${this.buildNumber}<br>
-                    <strong>📅 Última actualización:</strong> ${new Date(this.lastUpdate).toLocaleString()}
+                    <strong>📱 Versión: </strong> ${this.currentVersion}<br>
+                    <strong>🔨 Build: </strong> ${this.buildNumber}<br>
+                    <strong>📅 Última actualización: </strong> ${new Date(this.lastUpdate).toLocaleString()}
                 </div>
             `;
         }

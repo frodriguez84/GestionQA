@@ -258,10 +258,12 @@ async function syncDashboardToApp(requirementId) {
         }, 100);
         
         console.log(`✅ Requerimiento "${requirement.name}" sincronizado a la app`);
+        try { window.syncFromDashboardInProgress = false; } catch(_) {}
         return true;
         
     } catch (error) {
         console.error('❌ Error sincronizando dashboard → app:', error);
+        try { window.syncFromDashboardInProgress = false; } catch(_) {}
         return false;
     }
 }

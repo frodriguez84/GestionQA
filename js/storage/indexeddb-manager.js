@@ -12,14 +12,15 @@
 
 // Configuración de la base de datos
 const DB_NAME = 'GestorCP_DB';
-const DB_VERSION = 1;
+const DB_VERSION = 2; // ⬆️ Bump para agregar nuevas stores (evidences)
 const STORE_NAMES = {
     REQUIREMENTS: 'requirements',     // Requerimientos del dashboard
     CASES: 'cases',                  // Casos de prueba
     SCENARIOS: 'scenarios',          // Escenarios individuales
     SETTINGS: 'settings',            // Configuraciones de la app
     BACKUPS: 'backups',              // Backups automáticos
-    METADATA: 'metadata'             // Metadatos del sistema
+    METADATA: 'metadata',            // Metadatos del sistema
+    EVIDENCES: 'evidences'           // 🆕 Evidencias (binarios/base64)
 };
 
 // Variables globales
@@ -35,11 +36,6 @@ let migrationCompleted = false;
  * 🏗️ Inicializa IndexedDB y migra datos desde localStorage
  */
 async function initIndexedDB() {
-    // 🚨 CRÍTICO: IndexedDB DESHABILITADO temporalmente
-    console.log('⚠️ IndexedDB DESHABILITADO - usando localStorage');
-    isInitialized = false; // CRÍTICO: No marcar como inicializado
-    return Promise.resolve(null);
-    
     return new Promise((resolve, reject) => {
         if (isInitialized && db) {
             console.log('✅ IndexedDB ya inicializado');
@@ -59,28 +55,35 @@ async function initIndexedDB() {
             createObjectStores(db);
         };
 
+        request.onblocked = () => {
+            console.warn('⚠️ IndexedDB upgrade bloqueado por otra pestaña. Usando fallback sin bloquear UI.');
+            try { request.result && request.result.close && request.result.close(); } catch {}
+            isInitialized = false;
+            migrationCompleted = false;
+            resolve(null);
+        };
+
         request.onsuccess = (event) => {
             db = event.target.result;
             isInitialized = true;
-            // console.log('✅ IndexedDB inicializado correctamente');
-            
-            // 🚨 CRÍTICO: Migración DESHABILITADA
-            console.log('⚠️ Migración DESHABILITADA - IndexedDB no disponible');
-            migrationCompleted = true;
+            migrationCompleted = true; // mantenemos migración apagada para evitar duplicaciones
+            console.log('✅ IndexedDB inicializado');
             resolve(db);
-            
-            // Migrar datos desde localStorage
-            /* migrateFromLocalStorage().then(() => {
-                migrationCompleted = true;
-                console.log('✅ Migración desde localStorage completada');
-                resolve(db);
-            }).catch(reject); */
         };
 
         request.onerror = (event) => {
             console.error('❌ Error inicializando IndexedDB:', event.target.error);
             reject(event.target.error);
         };
+
+        // Fallback de seguridad para no bloquear carga: 1500ms
+        setTimeout(() => {
+            if (!isInitialized) {
+                console.warn('⏱️ Timeout inicializando IndexedDB, usando fallback');
+                try { request.result && request.result.close && request.result.close(); } catch {}
+                resolve(null);
+            }
+        }, 1500);
     });
 }
 
@@ -128,6 +131,14 @@ function createObjectStores(database) {
         {
             name: STORE_NAMES.METADATA,
             keyPath: 'key'
+        },
+        {
+            name: STORE_NAMES.EVIDENCES,
+            keyPath: 'id',
+            indexes: [
+                { name: 'mime', keyPath: 'mime', unique: false },
+                { name: 'createdAt', keyPath: 'createdAt', unique: false }
+            ]
         }
     ];
 
@@ -483,8 +494,7 @@ function integrateWithExistingSystem() {
         const originalSaveData = window.saveData;
         window.saveData = async function(key, data) {
             try {
-                // 🚨 CRÍTICO: IndexedDB está deshabilitado, usar localStorage directamente
-                // console.log(`⚠️ IndexedDB deshabilitado - guardando ${key} en localStorage`);
+                // Mantener comportamiento actual para evitar duplicación con localStorage
                 return originalSaveData(key, data);
                 
                 // SOLO guardar en IndexedDB para evitar duplicación en localStorage

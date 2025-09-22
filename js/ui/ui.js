@@ -774,17 +774,131 @@ document.addEventListener('DOMContentLoaded', function () {
                 };
             });
 
-            // Obtener evidencias
-            // Obtener evidencias (soporta imágenes y no imágenes)
+            // Obtener evidencias del DOM y persistirlas como referencias
             const evidenceContainer = document.getElementById('evidenceContainer');
             const evidenceItems = evidenceContainer.querySelectorAll('.evidence-item');
-            const evidence = Array.from(evidenceItems).map(item => {
-                // Guardamos lo que dejamos en dataset desde addEvidenceToContainer
+            const evidenceRaw = Array.from(evidenceItems).map(item => {
                 const name = item.dataset.name || (item.querySelector('span')?.textContent || 'archivo');
                 const mime = item.dataset.mime || '';
                 const src = item.dataset.src || (item.querySelector('img')?.src || '');
                 return { name, data: src, mime };
             });
+            let evidence = [];
+            if (window.EvidenceStorage && typeof window.EvidenceStorage.saveEvidenceList === 'function') {
+                // Guardar evidencias de forma asíncrona pero bloqueante antes de continuar
+                // Convertimos el handler en async envolviendo el resto en una IIFE
+                return (async () => {
+                    evidence = await window.EvidenceStorage.saveEvidenceList(evidenceRaw);
+                    await finalizeScenarioSave(evidence);
+                })();
+            } else {
+                // Fallback: mantener embebido si no hay storage
+                evidence = evidenceRaw;
+                return finalizeScenarioSave(evidence);
+            }
+
+            async function finalizeScenarioSave(evidenceList){
+                // Crear o actualizar caso
+                const testCaseData = {
+                    cycleNumber,
+                    scenarioNumber,
+                    description,
+                    inputVariables,
+                    obtainedResult,
+                    status,
+                    executionDate,
+                    observations,
+                    errorNumber,
+                    tester,
+                    evidence: evidenceList,
+                    testTime: 0 // Tiempo inicial en 0
+                };
+                
+                //  LÓGICA CORREGIDA PARA DUPLICACIÓN Y EDICIÓN
+                if (window.isDuplicating && window.duplicatedCaseTemp) {
+                    console.log('📄 Procesando duplicación de escenario');
+                    const duplicatedCase = {
+                        ...testCaseData,
+                        id: Date.now(),
+                        hidden: false,
+                        bugfixingTimer: null,
+                        bugfixingStartTime: null,
+                        bugfixingHours: 0,
+                        timerRunning: false,
+                        timerType: null,
+                        timerStartTime: null,
+                        timerEndTime: null,
+                        timerDuration: 0,
+                        isTimerActive: false
+                    };
+                    insertCaseInCorrectPosition(duplicatedCase);
+                    window.isDuplicating = false;
+                    window.duplicatedCaseTemp = null;
+                    console.log('✅ Caso duplicado creado:', duplicatedCase);
+                } else if (currentEditingId !== null) {
+                    const existingCase = testCases.find(tc => tc.id === currentEditingId);
+                    if (existingCase) {
+                        testCaseData.testTime = existingCase.testTime || 0;
+                        Object.assign(existingCase, testCaseData);
+                        console.log('✅ Caso editado:', testCaseData);
+                    } else {
+                        console.error('❌ No se encontró el caso a editar:', currentEditingId);
+                        showError('No se pudo encontrar el caso a editar', 'Error de edición');
+                        return;
+                    }
+                } else {
+                    const newCase = {
+                        ...testCaseData,
+                        id: Date.now(),
+                        hidden: false
+                    };
+                    testCases.push(newCase);
+                    console.log('✅ Nuevo caso creado:', newCase);
+                    console.log('🔍 DEBUG: testCases.length después de push:', testCases.length);
+                    if (typeof window.RealtimeSync !== 'undefined' && window.RealtimeSync.notifyScenarioUpdated) {
+                        window.RealtimeSync.notifyScenarioUpdated(newCase.id, newCase);
+                        console.log('🔄 Notificación de sincronización enviada para nuevo escenario:', newCase.scenarioNumber);
+                    }
+                }
+                
+                // El resto del flujo permanece igual
+                console.log('🔄 Actualizando UI inmediatamente...');
+                if (typeof renderTestCases === 'function') renderTestCases();
+                if (typeof updateAppStats === 'function') updateAppStats();
+                if (typeof updateRequirementStats === 'function' && window.currentRequirement) updateRequirementStats(window.currentRequirement);
+                if (typeof updateFilters === 'function') updateFilters();
+                
+                console.log('🔄 Sincronizando escenarios con caso actual...');
+                const testCasesBeforeSync = [...testCases];
+                if (typeof syncScenariosWithCurrentCase === 'function') {
+                    const syncResult = syncScenariosWithCurrentCase();
+                    console.log('📊 Resultado de sincronización:', syncResult ? 'Éxito' : 'Falló');
+                    if (testCases.length < testCasesBeforeSync.length) {
+                        console.log('⚠️ Se perdieron escenarios durante sincronización, restaurando...');
+                        testCasesBeforeSync.forEach(scenario => {
+                            if (!testCases.find(tc => tc.id === scenario.id)) testCases.push(scenario);
+                        });
+                    }
+                    renderTestCases();
+                    updateAppStats();
+                    updateFilters();
+                    if (typeof updateMulticaseRequirementStats === 'function' && window.currentRequirement) {
+                        updateMulticaseRequirementStats(window.currentRequirement);
+                    }
+                } else {
+                    console.warn('⚠️ syncScenariosWithCurrentCase no está disponible');
+                }
+                if (typeof saveMulticaseData === 'function') saveMulticaseData(); else saveToStorage();
+                if (typeof autoUpdateMulticaseUI === 'function') autoUpdateMulticaseUI();
+                if (typeof syncOnScenarioModified === 'function') syncOnScenarioModified(testCaseData);
+                else if (typeof window.syncOnScenarioModified === 'function') window.syncOnScenarioModified(testCaseData);
+                closeModal();
+                const action = currentEditingId !== null ? 'actualizado' : window.isDuplicating ? 'duplicado' : 'creado';
+                showSuccess(`Escenario ${action} correctamente`, 'Escenario guardado');
+                currentEditingId = null;
+                window.isDuplicating = false;
+                window.duplicatedCaseTemp = null;
+            }
 
             // Crear o actualizar caso
             const testCaseData = {

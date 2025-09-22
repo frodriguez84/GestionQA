@@ -184,19 +184,71 @@ window.openEditModal = function (id) {
     }
     renderFixedVariablesInputs(values);
 
-    // Cargar evidencias
+    // Migrar evidencias embebidas a referencias (IndexedDB/localStorage) y luego cargar al modal
     document.getElementById('evidenceContainer').innerHTML = '';
-    if (testCase.evidence) {
-        testCase.evidence.forEach(evidence => {
-            addEvidenceToContainer(evidence.name, evidence.data, evidence.mime);
-
-        });
-    }
+    (async () => {
+        try {
+            await migrateScenarioEvidences(testCase);
+        } catch (e) {
+            console.warn('⚠️ Migración de evidencias fallida (se continúa con embebidas):', e);
+        }
+        if (testCase.evidence) {
+            const loadEvidence = async (ev) => {
+                try {
+                    if (ev && ev.id && window.EvidenceStorage && typeof window.EvidenceStorage.getEvidence === 'function') {
+                        const rec = await window.EvidenceStorage.getEvidence(ev.id);
+                        if (rec) {
+                            addEvidenceToContainer(rec.name, rec.data, rec.mime);
+                            return;
+                        }
+                    }
+                    addEvidenceToContainer(ev.name, ev.data, ev.mime);
+                } catch (e) {
+                    console.warn('⚠️ No se pudo cargar evidencia', e);
+                    addEvidenceToContainer(ev.name, ev.data, ev.mime);
+                }
+            };
+            await Promise.all((testCase.evidence || []).map(ev => loadEvidence(ev)));
+        }
+    })();
 
     document.getElementById('testCaseModal').style.display = 'block';
 
     console.log('✅ Modal de edición abierto correctamente');
 }
+// Migración perezosa de evidencias embebidas → referencias
+async function migrateScenarioEvidences(testCase) {
+    if (!testCase || !Array.isArray(testCase.evidence) || testCase.evidence.length === 0) return;
+    if (!window.EvidenceStorage || typeof window.EvidenceStorage.saveEvidence !== 'function') return;
+
+    let mutated = false;
+    const newList = [];
+    for (const ev of testCase.evidence) {
+        // Si ya es referencia (tiene id y no tiene data embebida convincente), conservar
+        const hasId = !!ev.id;
+        const hasDataUrl = typeof ev.data === 'string' && ev.data.startsWith('data:');
+        if (hasId && !hasDataUrl) {
+            newList.push(ev);
+            continue;
+        }
+        // Guardar embebida como registro y reemplazar por referencia
+        try {
+            const saved = await window.EvidenceStorage.saveEvidence(ev.name || 'archivo', ev.mime || '', ev.data || '');
+            newList.push({ id: saved.id, name: saved.name, mime: saved.mime });
+            mutated = true;
+        } catch (e) {
+            console.warn('⚠️ No se pudo migrar evidencia embebida, se conserva embebida:', e);
+            newList.push(ev);
+        }
+    }
+    if (mutated) {
+        testCase.evidence = newList;
+        // Persistir el cambio en memoria y storage
+        if (typeof saveMulticaseData === 'function') saveMulticaseData();
+        else if (typeof saveToStorage === 'function') saveToStorage();
+    }
+}
+
 
 window.closeModal = function () {
     document.getElementById('testCaseModal').style.display = 'none';
@@ -437,9 +489,20 @@ function dataURLtoBlob(dataUrl, fallbackMime) {
     return new Blob([arr], { type: mime });
 }
 
-window.openEvidenceFile = function (dataUrl, name, mime) {
+window.openEvidenceFile = async function (dataUrlOrId, name, mime) {
     try {
-        mime = mime || (dataUrl.match(/^data:([^;]+);/)?.[1] || '');
+        let dataUrl = dataUrlOrId;
+        // Si vino una referencia (id), resolver
+        if (dataUrl && typeof dataUrl === 'string' && !dataUrl.startsWith('data:') && window.EvidenceStorage && typeof window.EvidenceStorage.getEvidence === 'function') {
+            const rec = await window.EvidenceStorage.getEvidence(dataUrl);
+            if (rec) {
+                name = rec.name || name;
+                mime = rec.mime || mime;
+                dataUrl = rec.data || '';
+            }
+        }
+
+        mime = mime || (dataUrl && dataUrl.match(/^data:([^;]+);/)?.[1] || '');
         if (!dataUrl) {
             alert('No hay archivo para abrir/descargar');
             return;
@@ -831,6 +894,88 @@ window.deleteTestCase = function (id) {
 // RENDERIZADO PRINCIPAL DE TABLA
 // ===============================================
 
+function __rowHtmlFromTestCase(testCase) {
+    const statusClass = testCase.status === 'OK' ? 'status-ok' :
+        testCase.status === 'NO' ? 'status-no' :
+            (!testCase.status || testCase.status === '' || testCase.status === 'Pendiente') ? 'status-pending' : '';
+    const evidenceCount = testCase.evidence ? testCase.evidence.length : 0;
+    const isSelected = selectedCases.has(testCase.id);
+    const timeHours = parseFloat(testCase.testTime) || 0;
+    const varsHtml = (inputVariableNames || []).map(varName => {
+        const found = (testCase.inputVariables || []).find(v => v.name === varName);
+        return `<td class="variable-column" style="min-width: 150px; max-width: 150px;">${escapeHtml(found ? found.value : '')}</td>`;
+    }).join('');
+    return `
+        <tr class="${statusClass} ${isSelected ? 'row-selected' : ''}" data-case-id="${testCase.id}">
+            <td class="checkbox-column">
+                <div class="checkbox-container">
+                    <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                           onchange="toggleCaseSelection(${testCase.id})" 
+                           title="Seleccionar caso">
+                </div>
+            </td>
+            <td class="drag-handle-column">
+                <div class="drag-handle" 
+                     onmousedown="startScenarioDrag(${testCase.id}, event)"
+                     title="Arrastar para reordenar Escenario ${testCase.scenarioNumber}">⋮⋮</div>
+            </td>
+            <td class="col-ciclo">${testCase.cycleNumber || ''}</td>
+            <td class="col-escenario">${testCase.scenarioNumber || ''}</td>
+            <td class="col-descripcion">${escapeHtml(testCase.description || '')}</td>
+            ${varsHtml}
+            <td class="col-resultado-esperado">${escapeHtml(testCase.obtainedResult || '')}</td>
+            <td>
+                <select onchange="updateStatusAndDate(${testCase.id}, this.value)" style="padding: 4px 8px; border-radius: 12px; font-weight: bold;">
+                    <option value="">Pendiente</option>
+                    <option value="OK" ${testCase.status === 'OK' ? 'selected' : ''}>OK</option>
+                    <option value="NO" ${testCase.status === 'NO' ? 'selected' : ''}>NO</option>
+                </select>
+            </td>
+            <td class="col-fecha-ejecucion">${formatDateForDisplay(testCase.executionDate) || ''}</td>
+            <td class="col-observaciones">${escapeHtml(testCase.observations || '')}</td>
+            <td class="col-error">${escapeHtml(testCase.errorNumber || '')}</td>
+            <td class="col-tester">${escapeHtml(testCase.tester || '')}</td>
+            <td class="col-tiempo" style="text-align: center;">
+                <input type="number" min="0" step="0.25" value="${timeHours.toFixed(2)}" 
+                    style="width: 70px; text-align: center; font-weight: bold;" 
+                    onchange="updateManualTime(${testCase.id}, this.value)"
+                    title="Tiempo en horas (ej: 1.5 = 1 hora 30 min)">
+            </td>
+            <td class="col-evidencias">${evidenceCount > 0 ?
+                `<a href="#" onclick="viewEvidence(${testCase.id}); return false;" style="color: #3498db; text-decoration: underline; cursor: pointer;">🔎 ${evidenceCount} archivos</a>` :
+                'Sin evidencias'}</td>
+            <td class="action-buttons">
+                <button class="btn btn-info btn-small" onclick="openEditModal(${testCase.id})" title="Editar Escenario">✏️</button>
+                <button class="btn btn-success btn-small" onclick="duplicateTestCase(${testCase.id})" title="Duplicar Escenario">📋</button>
+                <button class="btn btn-danger btn-small" onclick="deleteTestCase(${testCase.id})" title="Borrar Escenario">🗑️</button>
+                <button class="btn ${activeTimerId === testCase.id ? 'btn-danger' : 'btn-info'} btn-small" 
+                        onclick="toggleRowTimer(${testCase.id})" 
+                        id="timerBtn-${testCase.id}" 
+                        title="${activeTimerId === testCase.id ? 'Detener cronómetro' : 'Iniciar cronómetro'}">
+                    ${activeTimerId === testCase.id ? '⏹️' : '⏱️'}
+                </button>
+                ${testCase.status === 'NO' ? `
+                <button class="btn ${testCase.hasBug ? 
+                    (testCase.bugState === 'bug_reported' ? 'btn-info' : 
+                     testCase.bugState === 'bug_returned' ? 'btn-warning' : 
+                     testCase.bugState === 'bug_fixed' ? 'btn-success' : 'btn-warning') : 'btn-warning'} btn-small" 
+                        onclick="markBug(${testCase.id})" 
+                        id="markBugBtn-${testCase.id}" 
+                        title="${testCase.hasBug ? 
+                            (testCase.bugState === 'bug_reported' ? 'Bug reportado a desarrollo' : 
+                             testCase.bugState === 'bug_returned' ? 'Bug devuelto por desarrollo' : 
+                             testCase.bugState === 'bug_fixed' ? 'Bug arreglado' : 'Marcar escenario con bug') : 'Marcar escenario con bug'}">
+                    ${testCase.hasBug ? 
+                        (testCase.bugState === 'bug_reported' ? '📤 Reportado' : 
+                         testCase.bugState === 'bug_returned' ? '🔄 Devuelto' : 
+                         testCase.bugState === 'bug_fixed' ? '✅ Arreglado' : '🐛 Marcar Bug') : '🐛 Marcar Bug'}
+                </button>
+                ` : ''}
+            </td>
+        </tr>
+    `;
+}
+
 window.renderTestCases = function () {
     const tbody = document.getElementById('testCasesBody');
     const emptyState = document.getElementById('emptyState');
@@ -897,117 +1042,39 @@ window.renderTestCases = function () {
 
     emptyState.style.display = 'none';
 
-    tbody.innerHTML = filteredCases.map(testCase => {
-        const statusClass = testCase.status === 'OK' ? 'status-ok' :
-            testCase.status === 'NO' ? 'status-no' :
-                (!testCase.status || testCase.status === '' || testCase.status === 'Pendiente') ? 'status-pending' : '';
+    // Render progresivo para listas grandes para evitar bloqueos
+    const total = filteredCases.length;
+    const CHUNK = 150;
+    const useProgressive = total > CHUNK;
+    if (!useProgressive) {
+        tbody.innerHTML = filteredCases.map(__rowHtmlFromTestCase).join('');
+    } else {
+        tbody.innerHTML = '';
+        let index = 0;
+        const schedule = window.requestIdleCallback || function(cb){ return setTimeout(() => cb({didTimeout:false,timeRemaining:() => 0}), 0); };
+        const appendChunk = () => {
+            const frag = document.createDocumentFragment();
+            const end = Math.min(index + CHUNK, total);
+            let html = '';
+            for (let i = index; i < end; i++) html += __rowHtmlFromTestCase(filteredCases[i]);
+            const temp = document.createElement('tbody');
+            temp.innerHTML = html;
+            while (temp.firstChild) frag.appendChild(temp.firstChild);
+            tbody.appendChild(frag);
+            index = end;
+            if (index < total) schedule(appendChunk);
+        };
+        schedule(appendChunk);
+    }
 
-        const evidenceCount = testCase.evidence ? testCase.evidence.length : 0;
-        const isSelected = selectedCases.has(testCase.id);
-
-        // 🆕 TIEMPO SIMPLIFICADO - Solo horas
-        const timeHours = parseFloat(testCase.testTime) || 0;
-
-        return `
-            <tr class="${statusClass} ${isSelected ? 'row-selected' : ''}" data-case-id="${testCase.id}">
-                <!-- Checkbox de selección -->
-                <td class="checkbox-column">
-                    <div class="checkbox-container">
-                        <input type="checkbox" ${isSelected ? 'checked' : ''} 
-                               onchange="toggleCaseSelection(${testCase.id})" 
-                               title="Seleccionar caso">
-                    </div>
-                </td>
-                
-                <!-- NUEVA COLUMNA DE DRAG HANDLE -->
-                <td class="drag-handle-column">
-                    <div class="drag-handle" 
-                         onmousedown="startScenarioDrag(${testCase.id}, event)"
-                         title="Arrastar para reordenar Escenario ${testCase.scenarioNumber}">
-                        ⋮⋮
-                    </div>
-                </td>
-                
-                <!-- Resto de columnas existentes -->
-                <td class="col-ciclo">${testCase.cycleNumber || ''}</td>
-                <td class="col-escenario">${testCase.scenarioNumber || ''}</td>
-                <td class="col-descripcion">${escapeHtml(testCase.description || '')}</td>
-                
-                <!-- Variables dinámicas -->
-                ${inputVariableNames.map(varName => {
-            const found = (testCase.inputVariables || []).find(v => v.name === varName);
-            return `<td class="variable-column" style="min-width: 150px; max-width: 150px;">${escapeHtml(found ? found.value : '')}</td>`;
-        }).join('')}
-        
-                <td class="col-resultado-esperado">${escapeHtml(testCase.obtainedResult || '')}</td>
-                <td>
-                    <select onchange="updateStatusAndDate(${testCase.id}, this.value)" style="padding: 4px 8px; border-radius: 12px; font-weight: bold;">
-                        <option value="">Pendiente</option>
-                        <option value="OK" ${testCase.status === 'OK' ? 'selected' : ''}>OK</option>
-                        <option value="NO" ${testCase.status === 'NO' ? 'selected' : ''}>NO</option>
-                    </select>
-                </td>
-               <td class="col-fecha-ejecucion">${formatDateForDisplay(testCase.executionDate) || ''}</td>
-                <td class="col-observaciones">${escapeHtml(testCase.observations || '')}</td>
-                <td class="col-error">${escapeHtml(testCase.errorNumber || '')}</td>
-                <td class="col-tester">${escapeHtml(testCase.tester || '')}</td>
-                
-                <!-- 🆕 COLUMNA DE TIEMPO SIMPLIFICADA -->
-                <td class="col-tiempo" style="text-align: center;">
-                    <input type="number" min="0" step="0.25" value="${timeHours.toFixed(2)}" 
-                        style="width: 70px; text-align: center; font-weight: bold;" 
-                        onchange="updateManualTime(${testCase.id}, this.value)"
-                        title="Tiempo en horas (ej: 1.5 = 1 hora 30 min)">
-                </td>
-                
-                
-                <td class="col-evidencias">${evidenceCount > 0 ?
-                `<a href="#" onclick="viewEvidence(${testCase.id}); return false;" style="color: #3498db; text-decoration: underline; cursor: pointer;">🔎 ${evidenceCount} archivos</a>` :
-                'Sin evidencias'}</td>
-                
-                <td class="action-buttons">
-                    <button class="btn btn-info btn-small" onclick="openEditModal(${testCase.id})" title="Editar Escenario">✏️</button>
-                    <button class="btn btn-success btn-small" onclick="duplicateTestCase(${testCase.id})" title="Duplicar Escenario">📋</button>
-                    <button class="btn btn-danger btn-small" onclick="deleteTestCase(${testCase.id})" title="Borrar Escenario">🗑️</button>
-                    <button class="btn ${activeTimerId === testCase.id ? 'btn-danger' : 'btn-info'} btn-small" 
-                            onclick="toggleRowTimer(${testCase.id})" 
-                            id="timerBtn-${testCase.id}" 
-                            title="${activeTimerId === testCase.id ? 'Detener cronómetro' : 'Iniciar cronómetro'}">
-                        ${activeTimerId === testCase.id ? '⏹️' : '⏱️'}
-                    </button>
-                    ${testCase.status === 'NO' ? `
-                    <button class="btn ${testCase.hasBug ? 
-                        (testCase.bugState === 'bug_reported' ? 'btn-info' : 
-                         testCase.bugState === 'bug_returned' ? 'btn-warning' : 
-                         testCase.bugState === 'bug_fixed' ? 'btn-success' : 'btn-warning') : 'btn-warning'} btn-small" 
-                            onclick="markBug(${testCase.id})" 
-                            id="markBugBtn-${testCase.id}" 
-                            title="${testCase.hasBug ? 
-                                (testCase.bugState === 'bug_reported' ? 'Bug reportado a desarrollo' : 
-                                 testCase.bugState === 'bug_returned' ? 'Bug devuelto por desarrollo' : 
-                                 testCase.bugState === 'bug_fixed' ? 'Bug arreglado' : 'Marcar escenario con bug') : 'Marcar escenario con bug'}">
-                        ${testCase.hasBug ? 
-                            (testCase.bugState === 'bug_reported' ? '📤 Reportado' : 
-                             testCase.bugState === 'bug_returned' ? '🔄 Devuelto' : 
-                             testCase.bugState === 'bug_fixed' ? '✅ Arreglado' : '🐛 Marcar Bug') : '🐛 Marcar Bug'}
-                    </button>
-                    ` : ''}
-                </td>
-            </tr>
-        `;
-    }).join('');
-
-    // Solo actualizar si hay casos y no estamos ya en el proceso de actualizar filtros
-    if (filteredCases.length > 0 && !window.updatingFilters) {
+    // Solo actualizar si no estamos ya en proceso de actualizar filtros
+    if (!window.updatingFilters) {
         setTimeout(() => {
             window.updatingFilters = true;
             if (typeof updateFilters === 'function') {
                 // Extraer testers únicos de testCases actual
-                const testers = [...new Set(testCases.map(tc => tc.tester).filter(t => t && t.trim() !== ''))];
-                if (testers.length > 0) {
-                    updateFilters();
-                    // console.log('✅ Filtros actualizados después de renderizar casos');
-                }
+                updateFilters();
+                // console.log('✅ Filtros actualizados después de renderizar casos');
             }
             window.updatingFilters = false;
         }, 200);
@@ -1034,20 +1101,21 @@ window.renderTestCases = function () {
 
 window.applyFilters = function () {
     try {
-        const searchInput = document.getElementById('searchInput');
-        if (!searchInput) {
-            return;
-        }
-        
-        const search = searchInput.value.toLowerCase();
-        const testerFilter = document.getElementById('testerFilter').value;
-        const statusFilter = document.getElementById('statusFilter').value;
-        const dateFrom = document.getElementById('dateFromFilter').value;
-        const dateTo = document.getElementById('dateToFilter').value;
+        const searchInputEl = document.getElementById('searchInput');
+        const search = (searchInputEl ? searchInputEl.value : '').toLowerCase();
+        const testerFilterEl = document.getElementById('testerFilter');
+        const statusFilterEl = document.getElementById('statusFilter');
+        const dateFromEl = document.getElementById('dateFromFilter');
+        const dateToEl = document.getElementById('dateToFilter');
+
+        const testerFilter = testerFilterEl ? (testerFilterEl.value || '') : '';
+        const statusFilter = statusFilterEl ? (statusFilterEl.value || '') : '';
+        const dateFrom = dateFromEl ? (dateFromEl.value || '') : '';
+        const dateTo = dateToEl ? (dateToEl.value || '') : '';
     
         // NUEVA lógica para casos ocultos
-        const showHidden = document.getElementById('showHiddenToggle') ?
-            document.getElementById('showHiddenToggle').checked : false;
+        const showHiddenToggleEl = document.getElementById('showHiddenToggle');
+        const showHidden = showHiddenToggleEl ? showHiddenToggleEl.checked : false;
 
         filteredCases = testCases.filter(testCase => {
         // NUEVA condición: filtrar ocultos a menos que esté activado el toggle
@@ -1062,13 +1130,13 @@ window.applyFilters = function () {
             (testCase.scenarioNumber && testCase.scenarioNumber.toLowerCase().includes(search)) ||
             (testCase.observations && testCase.observations.toLowerCase().includes(search));
 
-        const matchesTester = !testerFilter || testCase.tester === testerFilter;
+        const matchesTester = !testerFilter || (testCase.tester || '').trim() === testerFilter.trim();
         const matchesStatus = !statusFilter ||
-            (statusFilter === "Pendiente" ? (!testCase.status || testCase.status === "") : testCase.status === statusFilter);
+            (statusFilter === "Pendiente" ? (!testCase.status || testCase.status === "") : (testCase.status || '') === statusFilter);
 
         let matchesDateRange = true;
         if (dateFrom || dateTo) {
-            const testDate = testCase.executionDate ? new Date(testCase.executionDate) : null;
+            const testDate = (testCase.executionDate && !isNaN(new Date(testCase.executionDate))) ? new Date(testCase.executionDate) : null;
             if (testDate) {
                 if (dateFrom) {
                     matchesDateRange = matchesDateRange && testDate >= new Date(dateFrom);
@@ -1102,29 +1170,21 @@ window.updateFilters = function () {
     }
 
     // Actualizar filtro de testers
-    const testerFilter = document.getElementById('testerFilter');
-    if (!testerFilter) {
-        console.warn('⚠️ No se encontró elemento testerFilter');
-        return;
+    const testerFilterEl = document.getElementById('testerFilter');
+    if (testerFilterEl) {
+        const currentTester = testerFilterEl.value || '';
+        const testers = [...new Set(testCases.map(tc => (tc.tester || '').trim()).filter(t => t !== ''))];
+        testerFilterEl.innerHTML = '<option value="">Todos</option>';
+        testers.forEach(tester => {
+            const option = document.createElement('option');
+            option.value = tester;
+            option.textContent = tester;
+            if (tester === currentTester) option.selected = true;
+            testerFilterEl.appendChild(option);
+        });
     }
 
-    const currentTester = testerFilter.value;
-
-    // 🎯 OBTENER TESTERS DE testCases (sincronizado con multicaso)
-    const testers = [...new Set(testCases.map(tc => tc.tester).filter(t => t && t.trim() !== ''))];
-
-    // console.log('📊 Testers encontrados:', testers);
-
-    testerFilter.innerHTML = '<option value="">Todos</option>';
-    testers.forEach(tester => {
-        const option = document.createElement('option');
-        option.value = tester;
-        option.textContent = tester;
-        if (tester === currentTester) option.selected = true;
-        testerFilter.appendChild(option);
-    });
-
-    // Aplicar filtros iniciales
+    // Mantener filteredCases estable: recalcular desde testCases
     filteredCases = [...testCases];
     applyFilters();
 

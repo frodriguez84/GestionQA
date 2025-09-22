@@ -63,8 +63,14 @@ function initRealtimeSync() {
         console.log('📡 Canal de sincronización creado:', SYNC_CHANNEL);
         console.log('🔄 Estado de sincronización:', isSyncEnabled);
         
-        // Solicitar sincronización inicial
-        requestFullSync();
+        // Solicitar sincronización inicial (diferida para no impactar el boot)
+        setTimeout(() => {
+            try {
+                if (document.visibilityState === 'visible') {
+                    requestFullSync();
+                }
+            } catch (e) { /* noop */ }
+        }, 2000);
         
         // Verificar conectividad del canal
         setTimeout(() => {
@@ -453,7 +459,7 @@ function sendSyncEvent(type, data) {
         };
         
         syncChannel.postMessage(message);
-        console.log('📤 Evento de sincronización enviado:', { type, user: currentUser, data });
+        //console.log('📤 Evento de sincronización enviado:', { type, user: currentUser, data });
         
     } catch (error) {
         console.error('❌ Error enviando evento de sincronización:', error);
@@ -833,10 +839,10 @@ window.RealtimeSync = {
 
 // Auto-inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', () => {
+    // Inicializar sin bloquear: rápido si hay soporte, no crítico
     setTimeout(() => {
-        // initRealtimeSync(); // DESACTIVADA TEMPORALMENTE PARA MEJORAR RENDIMIENTO
-        // console.log('⚠️ Sincronización en tiempo real desactivada temporalmente para mejorar rendimiento');
-    }, 1000);
+        try { initRealtimeSync(); } catch (e) { console.warn('⚠️ RealtimeSync init:', e); }
+    }, 200);
 });
 
 // console.log('🔄 Realtime Sync cargado - Versión 20250113a');
