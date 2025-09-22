@@ -1180,7 +1180,8 @@ body.dark-mode input:checked + .slider {
 
 /* Modal nuevo */
 .report-modal-new {
-    max-width: 1000px;
+    max-width: 1300px;
+    width: 98%;
     max-height: 90vh;
 }
 
@@ -1260,7 +1261,8 @@ body.dark-mode input:checked + .slider {
     overflow-x: auto;
     overflow-y: visible;
     border: 1px solid var(--border-color);
-    min-width: 800px;
+    min-width: 1100px;
+    width: 100%;
     position: relative;
 }
 
@@ -1272,7 +1274,8 @@ body.dark-mode input:checked + .slider {
     background: var(--bg-secondary);
     font-weight: 600;
     border-bottom: 2px solid var(--border-color);
-    min-width: 1000px;
+    min-width: 1100px;
+    width: 100%;
 }
 
 .report-table-new .table-row {
@@ -1281,9 +1284,10 @@ body.dark-mode input:checked + .slider {
     gap: 1rem;
     padding: 1rem;
     align-items: center;
-    min-width: 1000px;
+    min-width: 1100px;
+    width: 100%;
     position: relative;
-    box-shadow: 0 1px 0 var(--border-color);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .report-table-new .table-row:last-child {
@@ -1338,7 +1342,7 @@ body.dark-mode .report-table-new .table-header {
 }
 
 body.dark-mode .report-table-new .table-row {
-    box-shadow: 0 1px 0 var(--dark-border);
+    border-bottom-color: var(--dark-border);
 }
 
 .report-table {
