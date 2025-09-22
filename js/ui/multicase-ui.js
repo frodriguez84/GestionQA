@@ -205,16 +205,16 @@ function createRequirementHeader() {
             <div class="requirement-title-section">
                 <div class="requirement-icon">📋</div>
                 <div class="requirement-info">
-                    <h2 class="requirement-title">${displayData.name || 'Requerimiento Sin Nombre'}</h2>
+                    <h2 class="requirement-title">${escapeHtml(displayData.name || 'Requerimiento Sin Nombre')}</h2>
                     <div class="requirement-meta">
-                        <span class="requirement-number">📋 ${displayData.number || 'Sin número'}</span>
+                        <span class="requirement-number">📋 ${escapeHtml(displayData.number || 'Sin número')}</span>
                         <span class="requirement-separator">•</span>
-                        <span class="requirement-tester">👤 ${displayData.tester || 'Sin tester principal'}</span>
+                        <span class="requirement-tester">👤 ${escapeHtml(displayData.tester || 'Sin tester principal')}</span>
                         <span class="requirement-separator">•</span>
-                        <span class="requirement-date">📅 ${formatDateForDisplay(displayData.startDate || displayData.createdAt) || 'Sin fecha'}</span>
+                        <span class="requirement-date">📅 ${escapeHtml(formatDateForDisplay(displayData.startDate || displayData.createdAt) || 'Sin fecha')}</span>
                         ${dashboardData ? `<span class="requirement-separator">•</span><span class="requirement-priority">🎯 Prioridad ${dashboardData.priority}</span>` : ''}
                     </div>
-                    ${displayData.description ? `<p class="requirement-description">${displayData.description}</p>` : ''}
+                    ${displayData.description ? `<p class="requirement-description">${escapeHtml(displayData.description)}</p>` : ''}
                 </div>
             </div>
             
@@ -244,21 +244,21 @@ function createRequirementHeader() {
                 <div class="case-detail-group">
                     <div class="case-detail-item">
                         <span class="case-detail-label">N° Caso Actual</span>
-                        <span class="case-detail-value">${currentCase ? extractCaseNumber(currentCase) : '-'}</span>
+                        <span class="case-detail-value">${currentCase ? escapeHtml(extractCaseNumber(currentCase)) : '-'}</span>
                     </div>
                     <div class="case-detail-item">
                         <span class="case-detail-label">Título Caso</span>
-                        <span class="case-detail-value">${currentCase ? currentCase.title : 'Sin caso activo'}</span>
+                        <span class="case-detail-value">${currentCase ? escapeHtml(currentCase.title) : 'Sin caso activo'}</span>
                     </div>
                 </div>
                 <div class="case-detail-group">
                     <div class="case-detail-item">
                         <span class="case-detail-label">Prerequisitos/Requisitos</span>
-                        <span class="case-detail-value">${currentCase ? (currentCase.prerequisites || 'A completar por tester') : '-'}</span>
+                        <span class="case-detail-value">${currentCase ? escapeHtml(currentCase.prerequisites || 'A completar por tester') : '-'}</span>
                     </div>
                     <div class="case-detail-item">
                         <span class="case-detail-label">Fecha de inicio</span>
-                        <span class="case-detail-value">${firstExecutionDate ? formatDateForDisplay(firstExecutionDate) : 'Sin ejecuciones'}</span>
+                        <span class="case-detail-value">${firstExecutionDate ? escapeHtml(formatDateForDisplay(firstExecutionDate)) : 'Sin ejecuciones'}</span>
                     </div>
                 </div>
             </div>
@@ -401,7 +401,7 @@ function createCaseNavigation() {
                  data-case-id="${caseObj.id}">
                 <div class="case-tab-header">
                     <span class="case-tab-icon">📁</span>
-                    <span class="case-tab-title"> Caso ${caseObj.caseNumber}</span>
+                    <span class="case-tab-title"> Caso ${escapeHtml(caseObj.caseNumber)}</span>
                     <div class="case-tab-actions">
                         <button class="case-tab-edit" onclick="editCaseUI('${caseObj.id}', event)" title="Editar caso">⚙️</button>
                         <button class="case-tab-close" onclick="deleteCaseUI('${caseObj.id}', event)" title="Eliminar caso">✕</button>
@@ -414,7 +414,7 @@ function createCaseNavigation() {
                     <span class="case-separator">•</span>
                     <span class="case-stat case-success">${stats.successRate || 0}%</span>
                 </div>
-                <div class="case-tab-objective">${caseObj.objective || 'Sin objetivo definido'}</div>
+                <div class="case-tab-objective">${escapeHtml(caseObj.objective || 'Sin objetivo definido')}</div>
             </div>
         `;
     }).join('');

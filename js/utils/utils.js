@@ -153,6 +153,23 @@ function throttle(func, limit) {
 }
 
 /**
+ * Escapa caracteres peligrosos para evitar XSS en inserciones HTML
+ */
+function escapeHtml(text) {
+    try {
+        if (text === null || text === undefined) return '';
+        const str = String(text);
+        return str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    } catch (_) {
+        return '';
+    }
+}
+/**
  * Función centralizada para guardar datos con manejo de errores unificado
  */
 function saveData(key, data, useCompression = true) {
@@ -230,3 +247,4 @@ window.debounce = debounce;
 window.throttle = throttle;
 window.saveData = saveData;
 window.loadData = loadData;
+window.escapeHtml = escapeHtml;

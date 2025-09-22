@@ -931,15 +931,15 @@ window.renderTestCases = function () {
                 <!-- Resto de columnas existentes -->
                 <td class="col-ciclo">${testCase.cycleNumber || ''}</td>
                 <td class="col-escenario">${testCase.scenarioNumber || ''}</td>
-                <td class="col-descripcion">${testCase.description || ''}</td>
+                <td class="col-descripcion">${escapeHtml(testCase.description || '')}</td>
                 
                 <!-- Variables dinámicas -->
                 ${inputVariableNames.map(varName => {
             const found = (testCase.inputVariables || []).find(v => v.name === varName);
-            return `<td class="variable-column" style="min-width: 150px; max-width: 150px;">${found ? found.value : ''}</td>`;
+            return `<td class="variable-column" style="min-width: 150px; max-width: 150px;">${escapeHtml(found ? found.value : '')}</td>`;
         }).join('')}
         
-                <td class="col-resultado-esperado">${testCase.obtainedResult || ''}</td>
+                <td class="col-resultado-esperado">${escapeHtml(testCase.obtainedResult || '')}</td>
                 <td>
                     <select onchange="updateStatusAndDate(${testCase.id}, this.value)" style="padding: 4px 8px; border-radius: 12px; font-weight: bold;">
                         <option value="">Pendiente</option>
@@ -948,9 +948,9 @@ window.renderTestCases = function () {
                     </select>
                 </td>
                <td class="col-fecha-ejecucion">${formatDateForDisplay(testCase.executionDate) || ''}</td>
-                <td class="col-observaciones">${testCase.observations || ''}</td>
-                <td class="col-error">${testCase.errorNumber || ''}</td>
-                <td class="col-tester">${testCase.tester || ''}</td>
+                <td class="col-observaciones">${escapeHtml(testCase.observations || '')}</td>
+                <td class="col-error">${escapeHtml(testCase.errorNumber || '')}</td>
+                <td class="col-tester">${escapeHtml(testCase.tester || '')}</td>
                 
                 <!-- 🆕 COLUMNA DE TIEMPO SIMPLIFICADA -->
                 <td class="col-tiempo" style="text-align: center;">
