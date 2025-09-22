@@ -1125,24 +1125,29 @@ window.applyFilters = function () {
 
         // Resto de filtros existentes (MANTENER SIN CAMBIOS)
         const matchesSearch = !search ||
-            (testCase.description && testCase.description.toLowerCase().includes(search)) ||
-            (testCase.tester && testCase.tester.toLowerCase().includes(search)) ||
-            (testCase.scenarioNumber && testCase.scenarioNumber.toLowerCase().includes(search)) ||
-            (testCase.observations && testCase.observations.toLowerCase().includes(search));
+            (typeof testCase.description === 'string' && testCase.description.toLowerCase().includes(search)) ||
+            (typeof testCase.tester === 'string' && testCase.tester.toLowerCase().includes(search)) ||
+            (testCase.scenarioNumber !== undefined && String(testCase.scenarioNumber).toLowerCase().includes(search)) ||
+            (typeof testCase.observations === 'string' && testCase.observations.toLowerCase().includes(search));
 
-        const matchesTester = !testerFilter || (testCase.tester || '').trim() === testerFilter.trim();
-        const matchesStatus = !statusFilter ||
-            (statusFilter === "Pendiente" ? (!testCase.status || testCase.status === "") : (testCase.status || '') === statusFilter);
+        const matchesTester = !testerFilter || ((testCase.tester || '').trim() === testerFilter.trim());
+        const matchesStatus = !statusFilter || ((testCase.status || '') === statusFilter);
 
         let matchesDateRange = true;
         if (dateFrom || dateTo) {
-            const testDate = (testCase.executionDate && !isNaN(new Date(testCase.executionDate))) ? new Date(testCase.executionDate) : null;
-            if (testDate) {
+            const raw = testCase.executionDate || testCase.date || testCase.fecha || null;
+            const testDate = raw ? new Date(raw) : null;
+            if (!testDate || isNaN(testDate.getTime())) {
+                // Si el caso no tiene fecha válida y se está filtrando por fechas, no coincide
+                matchesDateRange = false;
+            } else {
                 if (dateFrom) {
-                    matchesDateRange = matchesDateRange && testDate >= new Date(dateFrom);
+                    const from = new Date(dateFrom + 'T00:00:00');
+                    if (testDate < from) matchesDateRange = false;
                 }
-                if (dateTo) {
-                    matchesDateRange = matchesDateRange && testDate <= new Date(dateTo + 'T23:59:59');
+                if (matchesDateRange && dateTo) {
+                    const to = new Date(dateTo + 'T23:59:59');
+                    if (testDate > to) matchesDateRange = false;
                 }
             }
         }
@@ -1173,20 +1178,18 @@ window.updateFilters = function () {
     const testerFilterEl = document.getElementById('testerFilter');
     if (testerFilterEl) {
         const currentTester = testerFilterEl.value || '';
-        const testers = [...new Set(testCases.map(tc => (tc.tester || '').trim()).filter(t => t !== ''))];
-        testerFilterEl.innerHTML = '<option value="">Todos</option>';
-        testers.forEach(tester => {
-            const option = document.createElement('option');
-            option.value = tester;
-            option.textContent = tester;
-            if (tester === currentTester) option.selected = true;
-            testerFilterEl.appendChild(option);
-        });
+        const testers = [...new Set(testCases.map(tc => (tc.tester || '').trim()).filter(t => t !== ''))].sort((a,b)=>a.localeCompare(b));
+        const prev = currentTester.trim();
+        testerFilterEl.innerHTML = '<option value="">Todos</option>' + testers.map(t => `<option value="${t}">${t}</option>`).join('');
+        if (prev && testers.includes(prev)) testerFilterEl.value = prev;
     }
 
-    // Mantener filteredCases estable: recalcular desde testCases
-    filteredCases = [...testCases];
-    applyFilters();
+    // Mantener filteredCases estable: aplicar filtros actuales si existen
+    if (typeof applyFilters === 'function') {
+        applyFilters();
+    } else {
+        filteredCases = [...testCases];
+    }
 
     // console.log('✅ Filtros actualizados - Testers disponibles:', testers.length);
 }
